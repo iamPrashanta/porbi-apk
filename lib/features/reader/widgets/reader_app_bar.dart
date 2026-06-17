@@ -1,8 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:porbi/core/theme/reader_themes.dart';
 import 'package:porbi/features/reader/providers/reader_provider.dart';
 

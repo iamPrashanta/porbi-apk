@@ -46,7 +46,9 @@ class ReaderBookmarksSheet extends ConsumerWidget {
             bookmarks.when(
               data: (items) {
                 if (items.isEmpty) {
-                  return Expanded(
+                  return SizedBox(
+                    height: minHeight - 80,
+                    width: double.infinity,
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -121,10 +123,14 @@ class ReaderBookmarksSheet extends ConsumerWidget {
                   ),
                 );
               },
-              loading: () => const Expanded(
-                child: Center(child: CircularProgressIndicator()),
+              loading: () => SizedBox(
+                height: minHeight - 80,
+                width: double.infinity,
+                child: const Center(child: CircularProgressIndicator()),
               ),
-              error: (e, _) => Expanded(
+              error: (e, _) => SizedBox(
+                height: minHeight - 80,
+                width: double.infinity,
                 child: Center(
                   child: Text('Error: $e', style: TextStyle(color: readerTheme.textColor)),
                 ),

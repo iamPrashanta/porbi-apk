@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:porbi/core/theme/reader_themes.dart';
-import 'package:porbi/features/reader/providers/reader_provider.dart';
 
 class ReaderProgressSheet extends ConsumerStatefulWidget {
   final ReaderThemeConfig readerTheme;
@@ -56,7 +55,6 @@ class _ReaderProgressSheetState extends ConsumerState<ReaderProgressSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(readerProvider);
     final theme = widget.readerTheme;
     final minHeight = MediaQuery.sizeOf(context).height * 0.45;
 
@@ -157,6 +155,7 @@ class _ReaderProgressSheetState extends ConsumerState<ReaderProgressSheet> {
             ),
         ],
       ),
+    ),
     );
   }
 }

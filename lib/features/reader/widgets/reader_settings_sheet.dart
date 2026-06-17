@@ -110,37 +110,63 @@ class ReaderSettingsSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            height: 40,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: AppConstants.availableFonts.length,
-              itemBuilder: (context, index) {
-                final font = AppConstants.availableFonts[index];
-                final isSelected = font == prefs.fontFamily;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(font),
-                    selected: isSelected,
-                    onSelected: (_) => notifier.updateFontFamily(font),
-                    selectedColor: readerTheme.accentColor.withValues(
-                      alpha: 0.2,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            decoration: BoxDecoration(
+              color: readerTheme.textColor.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: readerTheme.textColor.withValues(alpha: 0.1),
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: prefs.fontFamily,
+                isExpanded: true,
+                dropdownColor: readerTheme.backgroundColor,
+                icon: Icon(Icons.keyboard_arrow_down_rounded, color: readerTheme.textColor),
+                itemHeight: 64,
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    notifier.updateFontFamily(newValue);
+                  }
+                },
+                items: AppConstants.availableFonts.map<DropdownMenuItem<String>>((String font) {
+                  return DropdownMenuItem<String>(
+                    value: font,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            font,
+                            style: TextStyle(
+                              fontFamily: 'System',
+                              fontSize: 11,
+                              color: readerTheme.secondaryTextColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'The quick brown fox...',
+                            style: TextStyle(
+                              fontFamily: font == 'System' ? null : font,
+                              fontSize: 18,
+                              color: readerTheme.textColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
-                    labelStyle: TextStyle(
-                      color: isSelected
-                          ? readerTheme.accentColor
-                          : readerTheme.textColor,
-                      fontSize: 12,
-                    ),
-                    side: BorderSide(
-                      color: isSelected
-                          ? readerTheme.accentColor
-                          : readerTheme.textColor.withValues(alpha: 0.15),
-                    ),
-                  ),
-                );
-              },
+                  );
+                }).toList(),
+              ),
             ),
           ),
 
@@ -208,6 +234,7 @@ class ReaderSettingsSheet extends ConsumerWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }
