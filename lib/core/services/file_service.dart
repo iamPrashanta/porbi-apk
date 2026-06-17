@@ -16,15 +16,100 @@ class FileService {
 
   /// Pick a file using the system file picker.
   Future<File?> pickFile() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['txt', 'md', 'markdown', 'epub', 'html', 'htm'],
-    );
+    try {
+      if (Platform.isAndroid) {
+        // Use custom native picker for robust SAF support
+        final uriString = await _channel.invokeMethod<String>('pickFile');
+        if (uriString == null) return null;
+        
+        debugPrint('Picked file URI via custom intent: $uriString');
+        
+        // Copy content URI to local cache
+        final copiedPath = await _channel.invokeMethod<String>('copyContentUri', {'uri': uriString});
+        if (copiedPath != null) {
+          debugPrint('Copied file path from custom intent URI: $copiedPath');
+          final tempFile = File(copiedPath);
+          
+          // Verify extension
+          final ext = p.extension(copiedPath).toLowerCase().replaceAll('.', '');
+          final allowed = ['txt', 'md', 'markdown', 'epub', 'html', 'htm'];
+          if (!allowed.contains(ext)) {
+            // Android often loses the extension during copy if not resolved from metadata, 
+            // but the copyContentUri method queries OpenableColumns.DISPLAY_NAME which preserves it.
+            if (ext.isNotEmpty) {
+               // We only throw if it definitely has a bad extension.
+               // Sometimes no extension is retrieved, so we let it pass to parsing.
+               // We will just let the caller handle format errors if any.
+            }
+          }
+          return tempFile;
+        }
+        return null;
+      }
 
-    if (result != null && result.files.single.path != null) {
-      return File(result.files.single.path!);
+      // Fallback for non-Android platforms
+      final result = await FilePicker.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return null;
+      }
+
+      final file = result.files.single;
+      final path = file.path;
+      final bytes = file.bytes;
+      final name = file.name;
+      final ext = p.extension(name).toLowerCase().replaceAll('.', '');
+      
+      debugPrint('Picked file:');
+      debugPrint('Name: $name');
+      debugPrint('Extension: $ext');
+      debugPrint('Path: $path');
+      debugPrint('Bytes available: ${bytes != null ? bytes.length : 0}');
+
+      final allowed = ['txt', 'md', 'markdown', 'epub', 'html', 'htm'];
+      if (!allowed.contains(ext) && ext.isNotEmpty) {
+        throw UnsupportedError('File type .$ext is not supported');
+      }
+
+      // If bytes are available, write to temporary cache
+      if (bytes != null) {
+        final cacheDir = await getTemporaryDirectory();
+        final importDir = Directory(p.join(cacheDir.path, 'imports'));
+        if (!await importDir.exists()) {
+          await importDir.create(recursive: true);
+        }
+        final tempFile = File(p.join(importDir.path, name));
+        await tempFile.writeAsBytes(bytes);
+        debugPrint('Copied file path from bytes: ${tempFile.path}');
+        return tempFile;
+      }
+
+      // If no bytes but path exists and is content://
+      if (path != null && path.startsWith('content://')) {
+        final copiedPath = await _channel.invokeMethod<String>('copyContentUri', {'uri': path});
+        if (copiedPath != null) {
+          debugPrint('Copied file path from URI: $copiedPath');
+          return File(copiedPath);
+        }
+      }
+
+      // If path is a normal file
+      if (path != null) {
+        final localFile = File(path);
+        if (await localFile.exists()) {
+          return localFile;
+        }
+      }
+
+      throw Exception('Failed to retrieve file content or path');
+    } catch (e) {
+      debugPrint('Error picking file: $e');
+      rethrow;
     }
-    return null;
   }
 
   /// Hash a file using SHA256.

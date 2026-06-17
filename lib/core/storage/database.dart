@@ -76,14 +76,26 @@ class ReadingProgresses extends Table {
 
 // ─── Reader Settings & Search ───────────────────────────────
 
-@DataClassName('ReaderSettingsData')
-class ReaderSettings extends Table {
-  TextColumn get id => text()();
-  RealColumn get fontSize => real().withDefault(const Constant(16.0))();
-  TextColumn get fontFamily => text().withDefault(const Constant('System'))();
-  RealColumn get lineHeight => real().withDefault(const Constant(1.5))();
+@DataClassName('ReaderPreferencesData')
+class ReaderPreferences extends Table {
+  TextColumn get id => text().withDefault(const Constant('global'))();
   TextColumn get themeMode => text().withDefault(const Constant('light'))();
-  RealColumn get margin => real().withDefault(const Constant(16.0))();
+  RealColumn get fontSize => real().withDefault(const Constant(16.0))();
+  RealColumn get lineHeight => real().withDefault(const Constant(1.5))();
+  RealColumn get horizontalMargin => real().withDefault(const Constant(16.0))();
+  TextColumn get fontFamily => text().withDefault(const Constant('System'))();
+  BoolColumn get fullscreenEnabled => boolean().withDefault(const Constant(false))();
+  BoolColumn get autoHideControls => boolean().withDefault(const Constant(true))();
+  BoolColumn get justifiedText => boolean().withDefault(const Constant(false))();
+  RealColumn get brightnessOverride => real().nullable()();
+  RealColumn get paragraphSpacing => real().withDefault(const Constant(16.0))();
+  TextColumn get textAlign => text().withDefault(const Constant('left'))();
+  BoolColumn get showPageProgress => boolean().withDefault(const Constant(true))();
+  BoolColumn get showBatteryStatus => boolean().withDefault(const Constant(true))();
+  BoolColumn get showClock => boolean().withDefault(const Constant(true))();
+  BoolColumn get tapToTurnPage => boolean().withDefault(const Constant(true))();
+  BoolColumn get keepScreenAwake => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -99,27 +111,36 @@ class SearchIndex extends Table {
 
 // ─── Database ───────────────────────────────────────────────
 
-@DriftDatabase(tables: [Books, Bookmarks, Notes, ReadingProgresses, ReaderSettings, SearchIndex])
+@DriftDatabase(tables: [Books, Bookmarks, Notes, ReadingProgresses, ReaderPreferences, SearchIndex])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (Migrator m) async {
           await m.createAll();
+          // Insert the single global preferences row on creation
+          await into(readerPreferences).insert(
+            const ReaderPreferencesCompanion(id: Value('global')),
+          );
         },
         onUpgrade: (Migrator m, int from, int to) async {
           if (from < 2) {
             await m.addColumn(books, books.fileHash);
             await m.addColumn(books, books.author);
             await m.addColumn(books, books.fileSize);
-            await m.createTable(readerSettings);
             await m.createTable(searchIndex);
+          }
+          if (from < 3) {
+            await m.createTable(readerPreferences);
+            await into(readerPreferences).insert(
+              const ReaderPreferencesCompanion(id: Value('global')),
+            );
           }
         },
       );
@@ -275,7 +296,7 @@ class AppDatabase extends _$AppDatabase {
     final allBookmarks = await select(bookmarks).get();
     final allNotes = await select(notes).get();
     final allProgress = await select(readingProgresses).get();
-    final allSettings = await select(readerSettings).get();
+    final allPreferences = await select(readerPreferences).get();
     final allSearchIndex = await select(searchIndex).get();
 
     return {
@@ -341,15 +362,27 @@ class AppDatabase extends _$AppDatabase {
             },
           )
           .toList(),
-      'readerSettings': allSettings
+      'readerPreferences': allPreferences
           .map(
             (s) => {
               'id': s.id,
-              'fontSize': s.fontSize,
-              'fontFamily': s.fontFamily,
-              'lineHeight': s.lineHeight,
               'themeMode': s.themeMode,
-              'margin': s.margin,
+              'fontSize': s.fontSize,
+              'lineHeight': s.lineHeight,
+              'horizontalMargin': s.horizontalMargin,
+              'fontFamily': s.fontFamily,
+              'fullscreenEnabled': s.fullscreenEnabled,
+              'autoHideControls': s.autoHideControls,
+              'justifiedText': s.justifiedText,
+              'brightnessOverride': s.brightnessOverride,
+              'paragraphSpacing': s.paragraphSpacing,
+              'textAlign': s.textAlign,
+              'showPageProgress': s.showPageProgress,
+              'showBatteryStatus': s.showBatteryStatus,
+              'showClock': s.showClock,
+              'tapToTurnPage': s.tapToTurnPage,
+              'keepScreenAwake': s.keepScreenAwake,
+              'updatedAt': s.updatedAt.toIso8601String(),
             },
           )
           .toList(),
@@ -369,7 +402,7 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       // Clear existing data
       await delete(searchIndex).go();
-      await delete(readerSettings).go();
+      await delete(readerPreferences).go();
       await delete(readingProgresses).go();
       await delete(notes).go();
       await delete(bookmarks).go();
@@ -455,18 +488,35 @@ class AppDatabase extends _$AppDatabase {
         );
       }
 
-      // Import settings
-      final settingsList = data['readerSettings'] as List? ?? [];
-      for (final s in settingsList) {
-        await into(readerSettings).insert(
-          ReaderSettingsCompanion.insert(
-            id: s['id'] as String,
-            fontSize: Value((s['fontSize'] as num?)?.toDouble() ?? 16.0),
-            fontFamily: Value(s['fontFamily'] as String? ?? 'System'),
-            lineHeight: Value((s['lineHeight'] as num?)?.toDouble() ?? 1.5),
+      // Import preferences
+      final prefsList = data['readerPreferences'] as List? ?? [];
+      for (final s in prefsList) {
+        await into(readerPreferences).insert(
+          ReaderPreferencesCompanion.insert(
+            id: Value(s['id'] as String? ?? 'global'),
             themeMode: Value(s['themeMode'] as String? ?? 'light'),
-            margin: Value((s['margin'] as num?)?.toDouble() ?? 16.0),
+            fontSize: Value((s['fontSize'] as num?)?.toDouble() ?? 16.0),
+            lineHeight: Value((s['lineHeight'] as num?)?.toDouble() ?? 1.5),
+            horizontalMargin: Value((s['horizontalMargin'] as num?)?.toDouble() ?? 16.0),
+            fontFamily: Value(s['fontFamily'] as String? ?? 'System'),
+            fullscreenEnabled: Value(s['fullscreenEnabled'] as bool? ?? false),
+            autoHideControls: Value(s['autoHideControls'] as bool? ?? true),
+            justifiedText: Value(s['justifiedText'] as bool? ?? false),
+            brightnessOverride: Value((s['brightnessOverride'] as num?)?.toDouble()),
+            paragraphSpacing: Value((s['paragraphSpacing'] as num?)?.toDouble() ?? 16.0),
+            textAlign: Value(s['textAlign'] as String? ?? 'left'),
+            showPageProgress: Value(s['showPageProgress'] as bool? ?? true),
+            showBatteryStatus: Value(s['showBatteryStatus'] as bool? ?? true),
+            showClock: Value(s['showClock'] as bool? ?? true),
+            tapToTurnPage: Value(s['tapToTurnPage'] as bool? ?? true),
+            keepScreenAwake: Value(s['keepScreenAwake'] as bool? ?? true),
+            updatedAt: Value(
+              s['updatedAt'] != null
+                  ? DateTime.parse(s['updatedAt'] as String)
+                  : DateTime.now(),
+            ),
           ),
+          mode: InsertMode.insertOrReplace,
         );
       }
 

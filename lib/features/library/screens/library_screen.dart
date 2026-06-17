@@ -145,10 +145,18 @@ class LibraryScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final notifier = ref.read(libraryNotifierProvider.notifier);
-          final book = await notifier.importFile();
-          if (book != null && context.mounted) {
-            context.push('/reader/${book.id}');
+          try {
+            final notifier = ref.read(libraryNotifierProvider.notifier);
+            final book = await notifier.importFile();
+            if (book != null && context.mounted) {
+              context.push('/reader/${book.id}');
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to import file: $e')),
+              );
+            }
           }
         },
         icon: const Icon(Icons.add_rounded),

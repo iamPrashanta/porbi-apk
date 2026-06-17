@@ -1923,22 +1923,48 @@ class ReadingProgressesCompanion
   }
 }
 
-class $ReaderSettingsTable extends ReaderSettings
-    with TableInfo<$ReaderSettingsTable, ReaderSettingsData> {
+class $ReaderPreferencesTable extends ReaderPreferences
+    with TableInfo<$ReaderPreferencesTable, ReaderPreferencesData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ReaderSettingsTable(this.attachedDatabase, [this._alias]);
+  $ReaderPreferencesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('global'));
+  static const VerificationMeta _themeModeMeta =
+      const VerificationMeta('themeMode');
+  @override
+  late final GeneratedColumn<String> themeMode = GeneratedColumn<String>(
+      'theme_mode', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('light'));
   static const VerificationMeta _fontSizeMeta =
       const VerificationMeta('fontSize');
   @override
   late final GeneratedColumn<double> fontSize = GeneratedColumn<double>(
       'font_size', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(16.0));
+  static const VerificationMeta _lineHeightMeta =
+      const VerificationMeta('lineHeight');
+  @override
+  late final GeneratedColumn<double> lineHeight = GeneratedColumn<double>(
+      'line_height', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1.5));
+  static const VerificationMeta _horizontalMarginMeta =
+      const VerificationMeta('horizontalMargin');
+  @override
+  late final GeneratedColumn<double> horizontalMargin = GeneratedColumn<double>(
+      'horizontal_margin', aliasedName, false,
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(16.0));
@@ -1950,56 +1976,158 @@ class $ReaderSettingsTable extends ReaderSettings
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('System'));
-  static const VerificationMeta _lineHeightMeta =
-      const VerificationMeta('lineHeight');
+  static const VerificationMeta _fullscreenEnabledMeta =
+      const VerificationMeta('fullscreenEnabled');
   @override
-  late final GeneratedColumn<double> lineHeight = GeneratedColumn<double>(
-      'line_height', aliasedName, false,
-      type: DriftSqlType.double,
+  late final GeneratedColumn<bool> fullscreenEnabled = GeneratedColumn<bool>(
+      'fullscreen_enabled', aliasedName, false,
+      type: DriftSqlType.bool,
       requiredDuringInsert: false,
-      defaultValue: const Constant(1.5));
-  static const VerificationMeta _themeModeMeta =
-      const VerificationMeta('themeMode');
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("fullscreen_enabled" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _autoHideControlsMeta =
+      const VerificationMeta('autoHideControls');
   @override
-  late final GeneratedColumn<String> themeMode = GeneratedColumn<String>(
-      'theme_mode', aliasedName, false,
-      type: DriftSqlType.string,
+  late final GeneratedColumn<bool> autoHideControls = GeneratedColumn<bool>(
+      'auto_hide_controls', aliasedName, false,
+      type: DriftSqlType.bool,
       requiredDuringInsert: false,
-      defaultValue: const Constant('light'));
-  static const VerificationMeta _marginMeta = const VerificationMeta('margin');
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("auto_hide_controls" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _justifiedTextMeta =
+      const VerificationMeta('justifiedText');
   @override
-  late final GeneratedColumn<double> margin = GeneratedColumn<double>(
-      'margin', aliasedName, false,
+  late final GeneratedColumn<bool> justifiedText = GeneratedColumn<bool>(
+      'justified_text', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("justified_text" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _brightnessOverrideMeta =
+      const VerificationMeta('brightnessOverride');
+  @override
+  late final GeneratedColumn<double> brightnessOverride =
+      GeneratedColumn<double>('brightness_override', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _paragraphSpacingMeta =
+      const VerificationMeta('paragraphSpacing');
+  @override
+  late final GeneratedColumn<double> paragraphSpacing = GeneratedColumn<double>(
+      'paragraph_spacing', aliasedName, false,
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(16.0));
+  static const VerificationMeta _textAlignMeta =
+      const VerificationMeta('textAlign');
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, fontSize, fontFamily, lineHeight, themeMode, margin];
+  late final GeneratedColumn<String> textAlign = GeneratedColumn<String>(
+      'text_align', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('left'));
+  static const VerificationMeta _showPageProgressMeta =
+      const VerificationMeta('showPageProgress');
+  @override
+  late final GeneratedColumn<bool> showPageProgress = GeneratedColumn<bool>(
+      'show_page_progress', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("show_page_progress" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _showBatteryStatusMeta =
+      const VerificationMeta('showBatteryStatus');
+  @override
+  late final GeneratedColumn<bool> showBatteryStatus = GeneratedColumn<bool>(
+      'show_battery_status', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("show_battery_status" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _showClockMeta =
+      const VerificationMeta('showClock');
+  @override
+  late final GeneratedColumn<bool> showClock = GeneratedColumn<bool>(
+      'show_clock', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("show_clock" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _tapToTurnPageMeta =
+      const VerificationMeta('tapToTurnPage');
+  @override
+  late final GeneratedColumn<bool> tapToTurnPage = GeneratedColumn<bool>(
+      'tap_to_turn_page', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("tap_to_turn_page" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _keepScreenAwakeMeta =
+      const VerificationMeta('keepScreenAwake');
+  @override
+  late final GeneratedColumn<bool> keepScreenAwake = GeneratedColumn<bool>(
+      'keep_screen_awake', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("keep_screen_awake" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        themeMode,
+        fontSize,
+        lineHeight,
+        horizontalMargin,
+        fontFamily,
+        fullscreenEnabled,
+        autoHideControls,
+        justifiedText,
+        brightnessOverride,
+        paragraphSpacing,
+        textAlign,
+        showPageProgress,
+        showBatteryStatus,
+        showClock,
+        tapToTurnPage,
+        keepScreenAwake,
+        updatedAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'reader_settings';
+  static const String $name = 'reader_preferences';
   @override
-  VerificationContext validateIntegrity(Insertable<ReaderSettingsData> instance,
+  VerificationContext validateIntegrity(
+      Insertable<ReaderPreferencesData> instance,
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
+    }
+    if (data.containsKey('theme_mode')) {
+      context.handle(_themeModeMeta,
+          themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta));
     }
     if (data.containsKey('font_size')) {
       context.handle(_fontSizeMeta,
           fontSize.isAcceptableOrUnknown(data['font_size']!, _fontSizeMeta));
-    }
-    if (data.containsKey('font_family')) {
-      context.handle(
-          _fontFamilyMeta,
-          fontFamily.isAcceptableOrUnknown(
-              data['font_family']!, _fontFamilyMeta));
     }
     if (data.containsKey('line_height')) {
       context.handle(
@@ -2007,13 +2135,83 @@ class $ReaderSettingsTable extends ReaderSettings
           lineHeight.isAcceptableOrUnknown(
               data['line_height']!, _lineHeightMeta));
     }
-    if (data.containsKey('theme_mode')) {
-      context.handle(_themeModeMeta,
-          themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta));
+    if (data.containsKey('horizontal_margin')) {
+      context.handle(
+          _horizontalMarginMeta,
+          horizontalMargin.isAcceptableOrUnknown(
+              data['horizontal_margin']!, _horizontalMarginMeta));
     }
-    if (data.containsKey('margin')) {
-      context.handle(_marginMeta,
-          margin.isAcceptableOrUnknown(data['margin']!, _marginMeta));
+    if (data.containsKey('font_family')) {
+      context.handle(
+          _fontFamilyMeta,
+          fontFamily.isAcceptableOrUnknown(
+              data['font_family']!, _fontFamilyMeta));
+    }
+    if (data.containsKey('fullscreen_enabled')) {
+      context.handle(
+          _fullscreenEnabledMeta,
+          fullscreenEnabled.isAcceptableOrUnknown(
+              data['fullscreen_enabled']!, _fullscreenEnabledMeta));
+    }
+    if (data.containsKey('auto_hide_controls')) {
+      context.handle(
+          _autoHideControlsMeta,
+          autoHideControls.isAcceptableOrUnknown(
+              data['auto_hide_controls']!, _autoHideControlsMeta));
+    }
+    if (data.containsKey('justified_text')) {
+      context.handle(
+          _justifiedTextMeta,
+          justifiedText.isAcceptableOrUnknown(
+              data['justified_text']!, _justifiedTextMeta));
+    }
+    if (data.containsKey('brightness_override')) {
+      context.handle(
+          _brightnessOverrideMeta,
+          brightnessOverride.isAcceptableOrUnknown(
+              data['brightness_override']!, _brightnessOverrideMeta));
+    }
+    if (data.containsKey('paragraph_spacing')) {
+      context.handle(
+          _paragraphSpacingMeta,
+          paragraphSpacing.isAcceptableOrUnknown(
+              data['paragraph_spacing']!, _paragraphSpacingMeta));
+    }
+    if (data.containsKey('text_align')) {
+      context.handle(_textAlignMeta,
+          textAlign.isAcceptableOrUnknown(data['text_align']!, _textAlignMeta));
+    }
+    if (data.containsKey('show_page_progress')) {
+      context.handle(
+          _showPageProgressMeta,
+          showPageProgress.isAcceptableOrUnknown(
+              data['show_page_progress']!, _showPageProgressMeta));
+    }
+    if (data.containsKey('show_battery_status')) {
+      context.handle(
+          _showBatteryStatusMeta,
+          showBatteryStatus.isAcceptableOrUnknown(
+              data['show_battery_status']!, _showBatteryStatusMeta));
+    }
+    if (data.containsKey('show_clock')) {
+      context.handle(_showClockMeta,
+          showClock.isAcceptableOrUnknown(data['show_clock']!, _showClockMeta));
+    }
+    if (data.containsKey('tap_to_turn_page')) {
+      context.handle(
+          _tapToTurnPageMeta,
+          tapToTurnPage.isAcceptableOrUnknown(
+              data['tap_to_turn_page']!, _tapToTurnPageMeta));
+    }
+    if (data.containsKey('keep_screen_awake')) {
+      context.handle(
+          _keepScreenAwakeMeta,
+          keepScreenAwake.isAcceptableOrUnknown(
+              data['keep_screen_awake']!, _keepScreenAwakeMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
     }
     return context;
   }
@@ -2021,78 +2219,167 @@ class $ReaderSettingsTable extends ReaderSettings
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  ReaderSettingsData map(Map<String, dynamic> data, {String? tablePrefix}) {
+  ReaderPreferencesData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ReaderSettingsData(
+    return ReaderPreferencesData(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      fontSize: attachedDatabase.typeMapping
-          .read(DriftSqlType.double, data['${effectivePrefix}font_size'])!,
-      fontFamily: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}font_family'])!,
-      lineHeight: attachedDatabase.typeMapping
-          .read(DriftSqlType.double, data['${effectivePrefix}line_height'])!,
       themeMode: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}theme_mode'])!,
-      margin: attachedDatabase.typeMapping
-          .read(DriftSqlType.double, data['${effectivePrefix}margin'])!,
+      fontSize: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}font_size'])!,
+      lineHeight: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}line_height'])!,
+      horizontalMargin: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}horizontal_margin'])!,
+      fontFamily: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}font_family'])!,
+      fullscreenEnabled: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}fullscreen_enabled'])!,
+      autoHideControls: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}auto_hide_controls'])!,
+      justifiedText: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}justified_text'])!,
+      brightnessOverride: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}brightness_override']),
+      paragraphSpacing: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}paragraph_spacing'])!,
+      textAlign: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}text_align'])!,
+      showPageProgress: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}show_page_progress'])!,
+      showBatteryStatus: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}show_battery_status'])!,
+      showClock: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}show_clock'])!,
+      tapToTurnPage: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}tap_to_turn_page'])!,
+      keepScreenAwake: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}keep_screen_awake'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
     );
   }
 
   @override
-  $ReaderSettingsTable createAlias(String alias) {
-    return $ReaderSettingsTable(attachedDatabase, alias);
+  $ReaderPreferencesTable createAlias(String alias) {
+    return $ReaderPreferencesTable(attachedDatabase, alias);
   }
 }
 
-class ReaderSettingsData extends DataClass
-    implements Insertable<ReaderSettingsData> {
+class ReaderPreferencesData extends DataClass
+    implements Insertable<ReaderPreferencesData> {
   final String id;
-  final double fontSize;
-  final String fontFamily;
-  final double lineHeight;
   final String themeMode;
-  final double margin;
-  const ReaderSettingsData(
+  final double fontSize;
+  final double lineHeight;
+  final double horizontalMargin;
+  final String fontFamily;
+  final bool fullscreenEnabled;
+  final bool autoHideControls;
+  final bool justifiedText;
+  final double? brightnessOverride;
+  final double paragraphSpacing;
+  final String textAlign;
+  final bool showPageProgress;
+  final bool showBatteryStatus;
+  final bool showClock;
+  final bool tapToTurnPage;
+  final bool keepScreenAwake;
+  final DateTime updatedAt;
+  const ReaderPreferencesData(
       {required this.id,
-      required this.fontSize,
-      required this.fontFamily,
-      required this.lineHeight,
       required this.themeMode,
-      required this.margin});
+      required this.fontSize,
+      required this.lineHeight,
+      required this.horizontalMargin,
+      required this.fontFamily,
+      required this.fullscreenEnabled,
+      required this.autoHideControls,
+      required this.justifiedText,
+      this.brightnessOverride,
+      required this.paragraphSpacing,
+      required this.textAlign,
+      required this.showPageProgress,
+      required this.showBatteryStatus,
+      required this.showClock,
+      required this.tapToTurnPage,
+      required this.keepScreenAwake,
+      required this.updatedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['font_size'] = Variable<double>(fontSize);
-    map['font_family'] = Variable<String>(fontFamily);
-    map['line_height'] = Variable<double>(lineHeight);
     map['theme_mode'] = Variable<String>(themeMode);
-    map['margin'] = Variable<double>(margin);
+    map['font_size'] = Variable<double>(fontSize);
+    map['line_height'] = Variable<double>(lineHeight);
+    map['horizontal_margin'] = Variable<double>(horizontalMargin);
+    map['font_family'] = Variable<String>(fontFamily);
+    map['fullscreen_enabled'] = Variable<bool>(fullscreenEnabled);
+    map['auto_hide_controls'] = Variable<bool>(autoHideControls);
+    map['justified_text'] = Variable<bool>(justifiedText);
+    if (!nullToAbsent || brightnessOverride != null) {
+      map['brightness_override'] = Variable<double>(brightnessOverride);
+    }
+    map['paragraph_spacing'] = Variable<double>(paragraphSpacing);
+    map['text_align'] = Variable<String>(textAlign);
+    map['show_page_progress'] = Variable<bool>(showPageProgress);
+    map['show_battery_status'] = Variable<bool>(showBatteryStatus);
+    map['show_clock'] = Variable<bool>(showClock);
+    map['tap_to_turn_page'] = Variable<bool>(tapToTurnPage);
+    map['keep_screen_awake'] = Variable<bool>(keepScreenAwake);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
 
-  ReaderSettingsCompanion toCompanion(bool nullToAbsent) {
-    return ReaderSettingsCompanion(
+  ReaderPreferencesCompanion toCompanion(bool nullToAbsent) {
+    return ReaderPreferencesCompanion(
       id: Value(id),
-      fontSize: Value(fontSize),
-      fontFamily: Value(fontFamily),
-      lineHeight: Value(lineHeight),
       themeMode: Value(themeMode),
-      margin: Value(margin),
+      fontSize: Value(fontSize),
+      lineHeight: Value(lineHeight),
+      horizontalMargin: Value(horizontalMargin),
+      fontFamily: Value(fontFamily),
+      fullscreenEnabled: Value(fullscreenEnabled),
+      autoHideControls: Value(autoHideControls),
+      justifiedText: Value(justifiedText),
+      brightnessOverride: brightnessOverride == null && nullToAbsent
+          ? const Value.absent()
+          : Value(brightnessOverride),
+      paragraphSpacing: Value(paragraphSpacing),
+      textAlign: Value(textAlign),
+      showPageProgress: Value(showPageProgress),
+      showBatteryStatus: Value(showBatteryStatus),
+      showClock: Value(showClock),
+      tapToTurnPage: Value(tapToTurnPage),
+      keepScreenAwake: Value(keepScreenAwake),
+      updatedAt: Value(updatedAt),
     );
   }
 
-  factory ReaderSettingsData.fromJson(Map<String, dynamic> json,
+  factory ReaderPreferencesData.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ReaderSettingsData(
+    return ReaderPreferencesData(
       id: serializer.fromJson<String>(json['id']),
-      fontSize: serializer.fromJson<double>(json['fontSize']),
-      fontFamily: serializer.fromJson<String>(json['fontFamily']),
-      lineHeight: serializer.fromJson<double>(json['lineHeight']),
       themeMode: serializer.fromJson<String>(json['themeMode']),
-      margin: serializer.fromJson<double>(json['margin']),
+      fontSize: serializer.fromJson<double>(json['fontSize']),
+      lineHeight: serializer.fromJson<double>(json['lineHeight']),
+      horizontalMargin: serializer.fromJson<double>(json['horizontalMargin']),
+      fontFamily: serializer.fromJson<String>(json['fontFamily']),
+      fullscreenEnabled: serializer.fromJson<bool>(json['fullscreenEnabled']),
+      autoHideControls: serializer.fromJson<bool>(json['autoHideControls']),
+      justifiedText: serializer.fromJson<bool>(json['justifiedText']),
+      brightnessOverride:
+          serializer.fromJson<double?>(json['brightnessOverride']),
+      paragraphSpacing: serializer.fromJson<double>(json['paragraphSpacing']),
+      textAlign: serializer.fromJson<String>(json['textAlign']),
+      showPageProgress: serializer.fromJson<bool>(json['showPageProgress']),
+      showBatteryStatus: serializer.fromJson<bool>(json['showBatteryStatus']),
+      showClock: serializer.fromJson<bool>(json['showClock']),
+      tapToTurnPage: serializer.fromJson<bool>(json['tapToTurnPage']),
+      keepScreenAwake: serializer.fromJson<bool>(json['keepScreenAwake']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
   @override
@@ -2100,131 +2387,327 @@ class ReaderSettingsData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'fontSize': serializer.toJson<double>(fontSize),
-      'fontFamily': serializer.toJson<String>(fontFamily),
-      'lineHeight': serializer.toJson<double>(lineHeight),
       'themeMode': serializer.toJson<String>(themeMode),
-      'margin': serializer.toJson<double>(margin),
+      'fontSize': serializer.toJson<double>(fontSize),
+      'lineHeight': serializer.toJson<double>(lineHeight),
+      'horizontalMargin': serializer.toJson<double>(horizontalMargin),
+      'fontFamily': serializer.toJson<String>(fontFamily),
+      'fullscreenEnabled': serializer.toJson<bool>(fullscreenEnabled),
+      'autoHideControls': serializer.toJson<bool>(autoHideControls),
+      'justifiedText': serializer.toJson<bool>(justifiedText),
+      'brightnessOverride': serializer.toJson<double?>(brightnessOverride),
+      'paragraphSpacing': serializer.toJson<double>(paragraphSpacing),
+      'textAlign': serializer.toJson<String>(textAlign),
+      'showPageProgress': serializer.toJson<bool>(showPageProgress),
+      'showBatteryStatus': serializer.toJson<bool>(showBatteryStatus),
+      'showClock': serializer.toJson<bool>(showClock),
+      'tapToTurnPage': serializer.toJson<bool>(tapToTurnPage),
+      'keepScreenAwake': serializer.toJson<bool>(keepScreenAwake),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
 
-  ReaderSettingsData copyWith(
+  ReaderPreferencesData copyWith(
           {String? id,
-          double? fontSize,
-          String? fontFamily,
-          double? lineHeight,
           String? themeMode,
-          double? margin}) =>
-      ReaderSettingsData(
+          double? fontSize,
+          double? lineHeight,
+          double? horizontalMargin,
+          String? fontFamily,
+          bool? fullscreenEnabled,
+          bool? autoHideControls,
+          bool? justifiedText,
+          Value<double?> brightnessOverride = const Value.absent(),
+          double? paragraphSpacing,
+          String? textAlign,
+          bool? showPageProgress,
+          bool? showBatteryStatus,
+          bool? showClock,
+          bool? tapToTurnPage,
+          bool? keepScreenAwake,
+          DateTime? updatedAt}) =>
+      ReaderPreferencesData(
         id: id ?? this.id,
-        fontSize: fontSize ?? this.fontSize,
-        fontFamily: fontFamily ?? this.fontFamily,
-        lineHeight: lineHeight ?? this.lineHeight,
         themeMode: themeMode ?? this.themeMode,
-        margin: margin ?? this.margin,
+        fontSize: fontSize ?? this.fontSize,
+        lineHeight: lineHeight ?? this.lineHeight,
+        horizontalMargin: horizontalMargin ?? this.horizontalMargin,
+        fontFamily: fontFamily ?? this.fontFamily,
+        fullscreenEnabled: fullscreenEnabled ?? this.fullscreenEnabled,
+        autoHideControls: autoHideControls ?? this.autoHideControls,
+        justifiedText: justifiedText ?? this.justifiedText,
+        brightnessOverride: brightnessOverride.present
+            ? brightnessOverride.value
+            : this.brightnessOverride,
+        paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
+        textAlign: textAlign ?? this.textAlign,
+        showPageProgress: showPageProgress ?? this.showPageProgress,
+        showBatteryStatus: showBatteryStatus ?? this.showBatteryStatus,
+        showClock: showClock ?? this.showClock,
+        tapToTurnPage: tapToTurnPage ?? this.tapToTurnPage,
+        keepScreenAwake: keepScreenAwake ?? this.keepScreenAwake,
+        updatedAt: updatedAt ?? this.updatedAt,
       );
-  ReaderSettingsData copyWithCompanion(ReaderSettingsCompanion data) {
-    return ReaderSettingsData(
+  ReaderPreferencesData copyWithCompanion(ReaderPreferencesCompanion data) {
+    return ReaderPreferencesData(
       id: data.id.present ? data.id.value : this.id,
+      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
       fontSize: data.fontSize.present ? data.fontSize.value : this.fontSize,
-      fontFamily:
-          data.fontFamily.present ? data.fontFamily.value : this.fontFamily,
       lineHeight:
           data.lineHeight.present ? data.lineHeight.value : this.lineHeight,
-      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
-      margin: data.margin.present ? data.margin.value : this.margin,
+      horizontalMargin: data.horizontalMargin.present
+          ? data.horizontalMargin.value
+          : this.horizontalMargin,
+      fontFamily:
+          data.fontFamily.present ? data.fontFamily.value : this.fontFamily,
+      fullscreenEnabled: data.fullscreenEnabled.present
+          ? data.fullscreenEnabled.value
+          : this.fullscreenEnabled,
+      autoHideControls: data.autoHideControls.present
+          ? data.autoHideControls.value
+          : this.autoHideControls,
+      justifiedText: data.justifiedText.present
+          ? data.justifiedText.value
+          : this.justifiedText,
+      brightnessOverride: data.brightnessOverride.present
+          ? data.brightnessOverride.value
+          : this.brightnessOverride,
+      paragraphSpacing: data.paragraphSpacing.present
+          ? data.paragraphSpacing.value
+          : this.paragraphSpacing,
+      textAlign: data.textAlign.present ? data.textAlign.value : this.textAlign,
+      showPageProgress: data.showPageProgress.present
+          ? data.showPageProgress.value
+          : this.showPageProgress,
+      showBatteryStatus: data.showBatteryStatus.present
+          ? data.showBatteryStatus.value
+          : this.showBatteryStatus,
+      showClock: data.showClock.present ? data.showClock.value : this.showClock,
+      tapToTurnPage: data.tapToTurnPage.present
+          ? data.tapToTurnPage.value
+          : this.tapToTurnPage,
+      keepScreenAwake: data.keepScreenAwake.present
+          ? data.keepScreenAwake.value
+          : this.keepScreenAwake,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('ReaderSettingsData(')
+    return (StringBuffer('ReaderPreferencesData(')
           ..write('id: $id, ')
-          ..write('fontSize: $fontSize, ')
-          ..write('fontFamily: $fontFamily, ')
-          ..write('lineHeight: $lineHeight, ')
           ..write('themeMode: $themeMode, ')
-          ..write('margin: $margin')
+          ..write('fontSize: $fontSize, ')
+          ..write('lineHeight: $lineHeight, ')
+          ..write('horizontalMargin: $horizontalMargin, ')
+          ..write('fontFamily: $fontFamily, ')
+          ..write('fullscreenEnabled: $fullscreenEnabled, ')
+          ..write('autoHideControls: $autoHideControls, ')
+          ..write('justifiedText: $justifiedText, ')
+          ..write('brightnessOverride: $brightnessOverride, ')
+          ..write('paragraphSpacing: $paragraphSpacing, ')
+          ..write('textAlign: $textAlign, ')
+          ..write('showPageProgress: $showPageProgress, ')
+          ..write('showBatteryStatus: $showBatteryStatus, ')
+          ..write('showClock: $showClock, ')
+          ..write('tapToTurnPage: $tapToTurnPage, ')
+          ..write('keepScreenAwake: $keepScreenAwake, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, fontSize, fontFamily, lineHeight, themeMode, margin);
+  int get hashCode => Object.hash(
+      id,
+      themeMode,
+      fontSize,
+      lineHeight,
+      horizontalMargin,
+      fontFamily,
+      fullscreenEnabled,
+      autoHideControls,
+      justifiedText,
+      brightnessOverride,
+      paragraphSpacing,
+      textAlign,
+      showPageProgress,
+      showBatteryStatus,
+      showClock,
+      tapToTurnPage,
+      keepScreenAwake,
+      updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ReaderSettingsData &&
+      (other is ReaderPreferencesData &&
           other.id == this.id &&
-          other.fontSize == this.fontSize &&
-          other.fontFamily == this.fontFamily &&
-          other.lineHeight == this.lineHeight &&
           other.themeMode == this.themeMode &&
-          other.margin == this.margin);
+          other.fontSize == this.fontSize &&
+          other.lineHeight == this.lineHeight &&
+          other.horizontalMargin == this.horizontalMargin &&
+          other.fontFamily == this.fontFamily &&
+          other.fullscreenEnabled == this.fullscreenEnabled &&
+          other.autoHideControls == this.autoHideControls &&
+          other.justifiedText == this.justifiedText &&
+          other.brightnessOverride == this.brightnessOverride &&
+          other.paragraphSpacing == this.paragraphSpacing &&
+          other.textAlign == this.textAlign &&
+          other.showPageProgress == this.showPageProgress &&
+          other.showBatteryStatus == this.showBatteryStatus &&
+          other.showClock == this.showClock &&
+          other.tapToTurnPage == this.tapToTurnPage &&
+          other.keepScreenAwake == this.keepScreenAwake &&
+          other.updatedAt == this.updatedAt);
 }
 
-class ReaderSettingsCompanion extends UpdateCompanion<ReaderSettingsData> {
+class ReaderPreferencesCompanion
+    extends UpdateCompanion<ReaderPreferencesData> {
   final Value<String> id;
-  final Value<double> fontSize;
-  final Value<String> fontFamily;
-  final Value<double> lineHeight;
   final Value<String> themeMode;
-  final Value<double> margin;
+  final Value<double> fontSize;
+  final Value<double> lineHeight;
+  final Value<double> horizontalMargin;
+  final Value<String> fontFamily;
+  final Value<bool> fullscreenEnabled;
+  final Value<bool> autoHideControls;
+  final Value<bool> justifiedText;
+  final Value<double?> brightnessOverride;
+  final Value<double> paragraphSpacing;
+  final Value<String> textAlign;
+  final Value<bool> showPageProgress;
+  final Value<bool> showBatteryStatus;
+  final Value<bool> showClock;
+  final Value<bool> tapToTurnPage;
+  final Value<bool> keepScreenAwake;
+  final Value<DateTime> updatedAt;
   final Value<int> rowid;
-  const ReaderSettingsCompanion({
+  const ReaderPreferencesCompanion({
     this.id = const Value.absent(),
-    this.fontSize = const Value.absent(),
-    this.fontFamily = const Value.absent(),
-    this.lineHeight = const Value.absent(),
     this.themeMode = const Value.absent(),
-    this.margin = const Value.absent(),
+    this.fontSize = const Value.absent(),
+    this.lineHeight = const Value.absent(),
+    this.horizontalMargin = const Value.absent(),
+    this.fontFamily = const Value.absent(),
+    this.fullscreenEnabled = const Value.absent(),
+    this.autoHideControls = const Value.absent(),
+    this.justifiedText = const Value.absent(),
+    this.brightnessOverride = const Value.absent(),
+    this.paragraphSpacing = const Value.absent(),
+    this.textAlign = const Value.absent(),
+    this.showPageProgress = const Value.absent(),
+    this.showBatteryStatus = const Value.absent(),
+    this.showClock = const Value.absent(),
+    this.tapToTurnPage = const Value.absent(),
+    this.keepScreenAwake = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  ReaderSettingsCompanion.insert({
-    required String id,
-    this.fontSize = const Value.absent(),
-    this.fontFamily = const Value.absent(),
-    this.lineHeight = const Value.absent(),
+  ReaderPreferencesCompanion.insert({
+    this.id = const Value.absent(),
     this.themeMode = const Value.absent(),
-    this.margin = const Value.absent(),
+    this.fontSize = const Value.absent(),
+    this.lineHeight = const Value.absent(),
+    this.horizontalMargin = const Value.absent(),
+    this.fontFamily = const Value.absent(),
+    this.fullscreenEnabled = const Value.absent(),
+    this.autoHideControls = const Value.absent(),
+    this.justifiedText = const Value.absent(),
+    this.brightnessOverride = const Value.absent(),
+    this.paragraphSpacing = const Value.absent(),
+    this.textAlign = const Value.absent(),
+    this.showPageProgress = const Value.absent(),
+    this.showBatteryStatus = const Value.absent(),
+    this.showClock = const Value.absent(),
+    this.tapToTurnPage = const Value.absent(),
+    this.keepScreenAwake = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
-  }) : id = Value(id);
-  static Insertable<ReaderSettingsData> custom({
+  });
+  static Insertable<ReaderPreferencesData> custom({
     Expression<String>? id,
-    Expression<double>? fontSize,
-    Expression<String>? fontFamily,
-    Expression<double>? lineHeight,
     Expression<String>? themeMode,
-    Expression<double>? margin,
+    Expression<double>? fontSize,
+    Expression<double>? lineHeight,
+    Expression<double>? horizontalMargin,
+    Expression<String>? fontFamily,
+    Expression<bool>? fullscreenEnabled,
+    Expression<bool>? autoHideControls,
+    Expression<bool>? justifiedText,
+    Expression<double>? brightnessOverride,
+    Expression<double>? paragraphSpacing,
+    Expression<String>? textAlign,
+    Expression<bool>? showPageProgress,
+    Expression<bool>? showBatteryStatus,
+    Expression<bool>? showClock,
+    Expression<bool>? tapToTurnPage,
+    Expression<bool>? keepScreenAwake,
+    Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (fontSize != null) 'font_size': fontSize,
-      if (fontFamily != null) 'font_family': fontFamily,
-      if (lineHeight != null) 'line_height': lineHeight,
       if (themeMode != null) 'theme_mode': themeMode,
-      if (margin != null) 'margin': margin,
+      if (fontSize != null) 'font_size': fontSize,
+      if (lineHeight != null) 'line_height': lineHeight,
+      if (horizontalMargin != null) 'horizontal_margin': horizontalMargin,
+      if (fontFamily != null) 'font_family': fontFamily,
+      if (fullscreenEnabled != null) 'fullscreen_enabled': fullscreenEnabled,
+      if (autoHideControls != null) 'auto_hide_controls': autoHideControls,
+      if (justifiedText != null) 'justified_text': justifiedText,
+      if (brightnessOverride != null) 'brightness_override': brightnessOverride,
+      if (paragraphSpacing != null) 'paragraph_spacing': paragraphSpacing,
+      if (textAlign != null) 'text_align': textAlign,
+      if (showPageProgress != null) 'show_page_progress': showPageProgress,
+      if (showBatteryStatus != null) 'show_battery_status': showBatteryStatus,
+      if (showClock != null) 'show_clock': showClock,
+      if (tapToTurnPage != null) 'tap_to_turn_page': tapToTurnPage,
+      if (keepScreenAwake != null) 'keep_screen_awake': keepScreenAwake,
+      if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
-  ReaderSettingsCompanion copyWith(
+  ReaderPreferencesCompanion copyWith(
       {Value<String>? id,
-      Value<double>? fontSize,
-      Value<String>? fontFamily,
-      Value<double>? lineHeight,
       Value<String>? themeMode,
-      Value<double>? margin,
+      Value<double>? fontSize,
+      Value<double>? lineHeight,
+      Value<double>? horizontalMargin,
+      Value<String>? fontFamily,
+      Value<bool>? fullscreenEnabled,
+      Value<bool>? autoHideControls,
+      Value<bool>? justifiedText,
+      Value<double?>? brightnessOverride,
+      Value<double>? paragraphSpacing,
+      Value<String>? textAlign,
+      Value<bool>? showPageProgress,
+      Value<bool>? showBatteryStatus,
+      Value<bool>? showClock,
+      Value<bool>? tapToTurnPage,
+      Value<bool>? keepScreenAwake,
+      Value<DateTime>? updatedAt,
       Value<int>? rowid}) {
-    return ReaderSettingsCompanion(
+    return ReaderPreferencesCompanion(
       id: id ?? this.id,
-      fontSize: fontSize ?? this.fontSize,
-      fontFamily: fontFamily ?? this.fontFamily,
-      lineHeight: lineHeight ?? this.lineHeight,
       themeMode: themeMode ?? this.themeMode,
-      margin: margin ?? this.margin,
+      fontSize: fontSize ?? this.fontSize,
+      lineHeight: lineHeight ?? this.lineHeight,
+      horizontalMargin: horizontalMargin ?? this.horizontalMargin,
+      fontFamily: fontFamily ?? this.fontFamily,
+      fullscreenEnabled: fullscreenEnabled ?? this.fullscreenEnabled,
+      autoHideControls: autoHideControls ?? this.autoHideControls,
+      justifiedText: justifiedText ?? this.justifiedText,
+      brightnessOverride: brightnessOverride ?? this.brightnessOverride,
+      paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
+      textAlign: textAlign ?? this.textAlign,
+      showPageProgress: showPageProgress ?? this.showPageProgress,
+      showBatteryStatus: showBatteryStatus ?? this.showBatteryStatus,
+      showClock: showClock ?? this.showClock,
+      tapToTurnPage: tapToTurnPage ?? this.tapToTurnPage,
+      keepScreenAwake: keepScreenAwake ?? this.keepScreenAwake,
+      updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2235,20 +2718,56 @@ class ReaderSettingsCompanion extends UpdateCompanion<ReaderSettingsData> {
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
+    if (themeMode.present) {
+      map['theme_mode'] = Variable<String>(themeMode.value);
+    }
     if (fontSize.present) {
       map['font_size'] = Variable<double>(fontSize.value);
-    }
-    if (fontFamily.present) {
-      map['font_family'] = Variable<String>(fontFamily.value);
     }
     if (lineHeight.present) {
       map['line_height'] = Variable<double>(lineHeight.value);
     }
-    if (themeMode.present) {
-      map['theme_mode'] = Variable<String>(themeMode.value);
+    if (horizontalMargin.present) {
+      map['horizontal_margin'] = Variable<double>(horizontalMargin.value);
     }
-    if (margin.present) {
-      map['margin'] = Variable<double>(margin.value);
+    if (fontFamily.present) {
+      map['font_family'] = Variable<String>(fontFamily.value);
+    }
+    if (fullscreenEnabled.present) {
+      map['fullscreen_enabled'] = Variable<bool>(fullscreenEnabled.value);
+    }
+    if (autoHideControls.present) {
+      map['auto_hide_controls'] = Variable<bool>(autoHideControls.value);
+    }
+    if (justifiedText.present) {
+      map['justified_text'] = Variable<bool>(justifiedText.value);
+    }
+    if (brightnessOverride.present) {
+      map['brightness_override'] = Variable<double>(brightnessOverride.value);
+    }
+    if (paragraphSpacing.present) {
+      map['paragraph_spacing'] = Variable<double>(paragraphSpacing.value);
+    }
+    if (textAlign.present) {
+      map['text_align'] = Variable<String>(textAlign.value);
+    }
+    if (showPageProgress.present) {
+      map['show_page_progress'] = Variable<bool>(showPageProgress.value);
+    }
+    if (showBatteryStatus.present) {
+      map['show_battery_status'] = Variable<bool>(showBatteryStatus.value);
+    }
+    if (showClock.present) {
+      map['show_clock'] = Variable<bool>(showClock.value);
+    }
+    if (tapToTurnPage.present) {
+      map['tap_to_turn_page'] = Variable<bool>(tapToTurnPage.value);
+    }
+    if (keepScreenAwake.present) {
+      map['keep_screen_awake'] = Variable<bool>(keepScreenAwake.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -2258,13 +2777,25 @@ class ReaderSettingsCompanion extends UpdateCompanion<ReaderSettingsData> {
 
   @override
   String toString() {
-    return (StringBuffer('ReaderSettingsCompanion(')
+    return (StringBuffer('ReaderPreferencesCompanion(')
           ..write('id: $id, ')
-          ..write('fontSize: $fontSize, ')
-          ..write('fontFamily: $fontFamily, ')
-          ..write('lineHeight: $lineHeight, ')
           ..write('themeMode: $themeMode, ')
-          ..write('margin: $margin, ')
+          ..write('fontSize: $fontSize, ')
+          ..write('lineHeight: $lineHeight, ')
+          ..write('horizontalMargin: $horizontalMargin, ')
+          ..write('fontFamily: $fontFamily, ')
+          ..write('fullscreenEnabled: $fullscreenEnabled, ')
+          ..write('autoHideControls: $autoHideControls, ')
+          ..write('justifiedText: $justifiedText, ')
+          ..write('brightnessOverride: $brightnessOverride, ')
+          ..write('paragraphSpacing: $paragraphSpacing, ')
+          ..write('textAlign: $textAlign, ')
+          ..write('showPageProgress: $showPageProgress, ')
+          ..write('showBatteryStatus: $showBatteryStatus, ')
+          ..write('showClock: $showClock, ')
+          ..write('tapToTurnPage: $tapToTurnPage, ')
+          ..write('keepScreenAwake: $keepScreenAwake, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2546,14 +3077,21 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $NotesTable notes = $NotesTable(this);
   late final $ReadingProgressesTable readingProgresses =
       $ReadingProgressesTable(this);
-  late final $ReaderSettingsTable readerSettings = $ReaderSettingsTable(this);
+  late final $ReaderPreferencesTable readerPreferences =
+      $ReaderPreferencesTable(this);
   late final $SearchIndexTable searchIndex = $SearchIndexTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [books, bookmarks, notes, readingProgresses, readerSettings, searchIndex];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+        books,
+        bookmarks,
+        notes,
+        readingProgresses,
+        readerPreferences,
+        searchIndex
+      ];
 }
 
 typedef $$BooksTableCreateCompanionBuilder = BooksCompanion Function({
@@ -4089,30 +4627,54 @@ typedef $$ReadingProgressesTableProcessedTableManager = ProcessedTableManager<
     (ReadingProgressesData, $$ReadingProgressesTableReferences),
     ReadingProgressesData,
     PrefetchHooks Function({bool bookId})>;
-typedef $$ReaderSettingsTableCreateCompanionBuilder = ReaderSettingsCompanion
-    Function({
-  required String id,
-  Value<double> fontSize,
-  Value<String> fontFamily,
-  Value<double> lineHeight,
+typedef $$ReaderPreferencesTableCreateCompanionBuilder
+    = ReaderPreferencesCompanion Function({
+  Value<String> id,
   Value<String> themeMode,
-  Value<double> margin,
+  Value<double> fontSize,
+  Value<double> lineHeight,
+  Value<double> horizontalMargin,
+  Value<String> fontFamily,
+  Value<bool> fullscreenEnabled,
+  Value<bool> autoHideControls,
+  Value<bool> justifiedText,
+  Value<double?> brightnessOverride,
+  Value<double> paragraphSpacing,
+  Value<String> textAlign,
+  Value<bool> showPageProgress,
+  Value<bool> showBatteryStatus,
+  Value<bool> showClock,
+  Value<bool> tapToTurnPage,
+  Value<bool> keepScreenAwake,
+  Value<DateTime> updatedAt,
   Value<int> rowid,
 });
-typedef $$ReaderSettingsTableUpdateCompanionBuilder = ReaderSettingsCompanion
-    Function({
+typedef $$ReaderPreferencesTableUpdateCompanionBuilder
+    = ReaderPreferencesCompanion Function({
   Value<String> id,
-  Value<double> fontSize,
-  Value<String> fontFamily,
-  Value<double> lineHeight,
   Value<String> themeMode,
-  Value<double> margin,
+  Value<double> fontSize,
+  Value<double> lineHeight,
+  Value<double> horizontalMargin,
+  Value<String> fontFamily,
+  Value<bool> fullscreenEnabled,
+  Value<bool> autoHideControls,
+  Value<bool> justifiedText,
+  Value<double?> brightnessOverride,
+  Value<double> paragraphSpacing,
+  Value<String> textAlign,
+  Value<bool> showPageProgress,
+  Value<bool> showBatteryStatus,
+  Value<bool> showClock,
+  Value<bool> tapToTurnPage,
+  Value<bool> keepScreenAwake,
+  Value<DateTime> updatedAt,
   Value<int> rowid,
 });
 
-class $$ReaderSettingsTableFilterComposer
-    extends Composer<_$AppDatabase, $ReaderSettingsTable> {
-  $$ReaderSettingsTableFilterComposer({
+class $$ReaderPreferencesTableFilterComposer
+    extends Composer<_$AppDatabase, $ReaderPreferencesTable> {
+  $$ReaderPreferencesTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4122,25 +4684,69 @@ class $$ReaderSettingsTableFilterComposer
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get themeMode => $composableBuilder(
+      column: $table.themeMode, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<double> get fontSize => $composableBuilder(
       column: $table.fontSize, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get fontFamily => $composableBuilder(
-      column: $table.fontFamily, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get lineHeight => $composableBuilder(
       column: $table.lineHeight, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get themeMode => $composableBuilder(
-      column: $table.themeMode, builder: (column) => ColumnFilters(column));
+  ColumnFilters<double> get horizontalMargin => $composableBuilder(
+      column: $table.horizontalMargin,
+      builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<double> get margin => $composableBuilder(
-      column: $table.margin, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get fontFamily => $composableBuilder(
+      column: $table.fontFamily, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get fullscreenEnabled => $composableBuilder(
+      column: $table.fullscreenEnabled,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get autoHideControls => $composableBuilder(
+      column: $table.autoHideControls,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get justifiedText => $composableBuilder(
+      column: $table.justifiedText, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get brightnessOverride => $composableBuilder(
+      column: $table.brightnessOverride,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get paragraphSpacing => $composableBuilder(
+      column: $table.paragraphSpacing,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get textAlign => $composableBuilder(
+      column: $table.textAlign, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get showPageProgress => $composableBuilder(
+      column: $table.showPageProgress,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get showBatteryStatus => $composableBuilder(
+      column: $table.showBatteryStatus,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get showClock => $composableBuilder(
+      column: $table.showClock, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get tapToTurnPage => $composableBuilder(
+      column: $table.tapToTurnPage, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get keepScreenAwake => $composableBuilder(
+      column: $table.keepScreenAwake,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 }
 
-class $$ReaderSettingsTableOrderingComposer
-    extends Composer<_$AppDatabase, $ReaderSettingsTable> {
-  $$ReaderSettingsTableOrderingComposer({
+class $$ReaderPreferencesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReaderPreferencesTable> {
+  $$ReaderPreferencesTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4150,25 +4756,71 @@ class $$ReaderSettingsTableOrderingComposer
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get themeMode => $composableBuilder(
+      column: $table.themeMode, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get fontSize => $composableBuilder(
       column: $table.fontSize, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get fontFamily => $composableBuilder(
-      column: $table.fontFamily, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get lineHeight => $composableBuilder(
       column: $table.lineHeight, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get themeMode => $composableBuilder(
-      column: $table.themeMode, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<double> get horizontalMargin => $composableBuilder(
+      column: $table.horizontalMargin,
+      builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<double> get margin => $composableBuilder(
-      column: $table.margin, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get fontFamily => $composableBuilder(
+      column: $table.fontFamily, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get fullscreenEnabled => $composableBuilder(
+      column: $table.fullscreenEnabled,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get autoHideControls => $composableBuilder(
+      column: $table.autoHideControls,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get justifiedText => $composableBuilder(
+      column: $table.justifiedText,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get brightnessOverride => $composableBuilder(
+      column: $table.brightnessOverride,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get paragraphSpacing => $composableBuilder(
+      column: $table.paragraphSpacing,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get textAlign => $composableBuilder(
+      column: $table.textAlign, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get showPageProgress => $composableBuilder(
+      column: $table.showPageProgress,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get showBatteryStatus => $composableBuilder(
+      column: $table.showBatteryStatus,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get showClock => $composableBuilder(
+      column: $table.showClock, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get tapToTurnPage => $composableBuilder(
+      column: $table.tapToTurnPage,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get keepScreenAwake => $composableBuilder(
+      column: $table.keepScreenAwake,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 }
 
-class $$ReaderSettingsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ReaderSettingsTable> {
-  $$ReaderSettingsTableAnnotationComposer({
+class $$ReaderPreferencesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReaderPreferencesTable> {
+  $$ReaderPreferencesTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4178,82 +4830,168 @@ class $$ReaderSettingsTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get themeMode =>
+      $composableBuilder(column: $table.themeMode, builder: (column) => column);
+
   GeneratedColumn<double> get fontSize =>
       $composableBuilder(column: $table.fontSize, builder: (column) => column);
-
-  GeneratedColumn<String> get fontFamily => $composableBuilder(
-      column: $table.fontFamily, builder: (column) => column);
 
   GeneratedColumn<double> get lineHeight => $composableBuilder(
       column: $table.lineHeight, builder: (column) => column);
 
-  GeneratedColumn<String> get themeMode =>
-      $composableBuilder(column: $table.themeMode, builder: (column) => column);
+  GeneratedColumn<double> get horizontalMargin => $composableBuilder(
+      column: $table.horizontalMargin, builder: (column) => column);
 
-  GeneratedColumn<double> get margin =>
-      $composableBuilder(column: $table.margin, builder: (column) => column);
+  GeneratedColumn<String> get fontFamily => $composableBuilder(
+      column: $table.fontFamily, builder: (column) => column);
+
+  GeneratedColumn<bool> get fullscreenEnabled => $composableBuilder(
+      column: $table.fullscreenEnabled, builder: (column) => column);
+
+  GeneratedColumn<bool> get autoHideControls => $composableBuilder(
+      column: $table.autoHideControls, builder: (column) => column);
+
+  GeneratedColumn<bool> get justifiedText => $composableBuilder(
+      column: $table.justifiedText, builder: (column) => column);
+
+  GeneratedColumn<double> get brightnessOverride => $composableBuilder(
+      column: $table.brightnessOverride, builder: (column) => column);
+
+  GeneratedColumn<double> get paragraphSpacing => $composableBuilder(
+      column: $table.paragraphSpacing, builder: (column) => column);
+
+  GeneratedColumn<String> get textAlign =>
+      $composableBuilder(column: $table.textAlign, builder: (column) => column);
+
+  GeneratedColumn<bool> get showPageProgress => $composableBuilder(
+      column: $table.showPageProgress, builder: (column) => column);
+
+  GeneratedColumn<bool> get showBatteryStatus => $composableBuilder(
+      column: $table.showBatteryStatus, builder: (column) => column);
+
+  GeneratedColumn<bool> get showClock =>
+      $composableBuilder(column: $table.showClock, builder: (column) => column);
+
+  GeneratedColumn<bool> get tapToTurnPage => $composableBuilder(
+      column: $table.tapToTurnPage, builder: (column) => column);
+
+  GeneratedColumn<bool> get keepScreenAwake => $composableBuilder(
+      column: $table.keepScreenAwake, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
 
-class $$ReaderSettingsTableTableManager extends RootTableManager<
+class $$ReaderPreferencesTableTableManager extends RootTableManager<
     _$AppDatabase,
-    $ReaderSettingsTable,
-    ReaderSettingsData,
-    $$ReaderSettingsTableFilterComposer,
-    $$ReaderSettingsTableOrderingComposer,
-    $$ReaderSettingsTableAnnotationComposer,
-    $$ReaderSettingsTableCreateCompanionBuilder,
-    $$ReaderSettingsTableUpdateCompanionBuilder,
+    $ReaderPreferencesTable,
+    ReaderPreferencesData,
+    $$ReaderPreferencesTableFilterComposer,
+    $$ReaderPreferencesTableOrderingComposer,
+    $$ReaderPreferencesTableAnnotationComposer,
+    $$ReaderPreferencesTableCreateCompanionBuilder,
+    $$ReaderPreferencesTableUpdateCompanionBuilder,
     (
-      ReaderSettingsData,
-      BaseReferences<_$AppDatabase, $ReaderSettingsTable, ReaderSettingsData>
+      ReaderPreferencesData,
+      BaseReferences<_$AppDatabase, $ReaderPreferencesTable,
+          ReaderPreferencesData>
     ),
-    ReaderSettingsData,
+    ReaderPreferencesData,
     PrefetchHooks Function()> {
-  $$ReaderSettingsTableTableManager(
-      _$AppDatabase db, $ReaderSettingsTable table)
+  $$ReaderPreferencesTableTableManager(
+      _$AppDatabase db, $ReaderPreferencesTable table)
       : super(TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ReaderSettingsTableFilterComposer($db: db, $table: table),
+              $$ReaderPreferencesTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ReaderSettingsTableOrderingComposer($db: db, $table: table),
+              $$ReaderPreferencesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$ReaderSettingsTableAnnotationComposer($db: db, $table: table),
+              $$ReaderPreferencesTableAnnotationComposer(
+                  $db: db, $table: table),
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
-            Value<double> fontSize = const Value.absent(),
-            Value<String> fontFamily = const Value.absent(),
-            Value<double> lineHeight = const Value.absent(),
             Value<String> themeMode = const Value.absent(),
-            Value<double> margin = const Value.absent(),
+            Value<double> fontSize = const Value.absent(),
+            Value<double> lineHeight = const Value.absent(),
+            Value<double> horizontalMargin = const Value.absent(),
+            Value<String> fontFamily = const Value.absent(),
+            Value<bool> fullscreenEnabled = const Value.absent(),
+            Value<bool> autoHideControls = const Value.absent(),
+            Value<bool> justifiedText = const Value.absent(),
+            Value<double?> brightnessOverride = const Value.absent(),
+            Value<double> paragraphSpacing = const Value.absent(),
+            Value<String> textAlign = const Value.absent(),
+            Value<bool> showPageProgress = const Value.absent(),
+            Value<bool> showBatteryStatus = const Value.absent(),
+            Value<bool> showClock = const Value.absent(),
+            Value<bool> tapToTurnPage = const Value.absent(),
+            Value<bool> keepScreenAwake = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
-              ReaderSettingsCompanion(
+              ReaderPreferencesCompanion(
             id: id,
-            fontSize: fontSize,
-            fontFamily: fontFamily,
-            lineHeight: lineHeight,
             themeMode: themeMode,
-            margin: margin,
+            fontSize: fontSize,
+            lineHeight: lineHeight,
+            horizontalMargin: horizontalMargin,
+            fontFamily: fontFamily,
+            fullscreenEnabled: fullscreenEnabled,
+            autoHideControls: autoHideControls,
+            justifiedText: justifiedText,
+            brightnessOverride: brightnessOverride,
+            paragraphSpacing: paragraphSpacing,
+            textAlign: textAlign,
+            showPageProgress: showPageProgress,
+            showBatteryStatus: showBatteryStatus,
+            showClock: showClock,
+            tapToTurnPage: tapToTurnPage,
+            keepScreenAwake: keepScreenAwake,
+            updatedAt: updatedAt,
             rowid: rowid,
           ),
           createCompanionCallback: ({
-            required String id,
-            Value<double> fontSize = const Value.absent(),
-            Value<String> fontFamily = const Value.absent(),
-            Value<double> lineHeight = const Value.absent(),
+            Value<String> id = const Value.absent(),
             Value<String> themeMode = const Value.absent(),
-            Value<double> margin = const Value.absent(),
+            Value<double> fontSize = const Value.absent(),
+            Value<double> lineHeight = const Value.absent(),
+            Value<double> horizontalMargin = const Value.absent(),
+            Value<String> fontFamily = const Value.absent(),
+            Value<bool> fullscreenEnabled = const Value.absent(),
+            Value<bool> autoHideControls = const Value.absent(),
+            Value<bool> justifiedText = const Value.absent(),
+            Value<double?> brightnessOverride = const Value.absent(),
+            Value<double> paragraphSpacing = const Value.absent(),
+            Value<String> textAlign = const Value.absent(),
+            Value<bool> showPageProgress = const Value.absent(),
+            Value<bool> showBatteryStatus = const Value.absent(),
+            Value<bool> showClock = const Value.absent(),
+            Value<bool> tapToTurnPage = const Value.absent(),
+            Value<bool> keepScreenAwake = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
-              ReaderSettingsCompanion.insert(
+              ReaderPreferencesCompanion.insert(
             id: id,
-            fontSize: fontSize,
-            fontFamily: fontFamily,
-            lineHeight: lineHeight,
             themeMode: themeMode,
-            margin: margin,
+            fontSize: fontSize,
+            lineHeight: lineHeight,
+            horizontalMargin: horizontalMargin,
+            fontFamily: fontFamily,
+            fullscreenEnabled: fullscreenEnabled,
+            autoHideControls: autoHideControls,
+            justifiedText: justifiedText,
+            brightnessOverride: brightnessOverride,
+            paragraphSpacing: paragraphSpacing,
+            textAlign: textAlign,
+            showPageProgress: showPageProgress,
+            showBatteryStatus: showBatteryStatus,
+            showClock: showClock,
+            tapToTurnPage: tapToTurnPage,
+            keepScreenAwake: keepScreenAwake,
+            updatedAt: updatedAt,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -4263,20 +5001,21 @@ class $$ReaderSettingsTableTableManager extends RootTableManager<
         ));
 }
 
-typedef $$ReaderSettingsTableProcessedTableManager = ProcessedTableManager<
+typedef $$ReaderPreferencesTableProcessedTableManager = ProcessedTableManager<
     _$AppDatabase,
-    $ReaderSettingsTable,
-    ReaderSettingsData,
-    $$ReaderSettingsTableFilterComposer,
-    $$ReaderSettingsTableOrderingComposer,
-    $$ReaderSettingsTableAnnotationComposer,
-    $$ReaderSettingsTableCreateCompanionBuilder,
-    $$ReaderSettingsTableUpdateCompanionBuilder,
+    $ReaderPreferencesTable,
+    ReaderPreferencesData,
+    $$ReaderPreferencesTableFilterComposer,
+    $$ReaderPreferencesTableOrderingComposer,
+    $$ReaderPreferencesTableAnnotationComposer,
+    $$ReaderPreferencesTableCreateCompanionBuilder,
+    $$ReaderPreferencesTableUpdateCompanionBuilder,
     (
-      ReaderSettingsData,
-      BaseReferences<_$AppDatabase, $ReaderSettingsTable, ReaderSettingsData>
+      ReaderPreferencesData,
+      BaseReferences<_$AppDatabase, $ReaderPreferencesTable,
+          ReaderPreferencesData>
     ),
-    ReaderSettingsData,
+    ReaderPreferencesData,
     PrefetchHooks Function()>;
 typedef $$SearchIndexTableCreateCompanionBuilder = SearchIndexCompanion
     Function({
@@ -4543,8 +5282,8 @@ class $AppDatabaseManager {
       $$NotesTableTableManager(_db, _db.notes);
   $$ReadingProgressesTableTableManager get readingProgresses =>
       $$ReadingProgressesTableTableManager(_db, _db.readingProgresses);
-  $$ReaderSettingsTableTableManager get readerSettings =>
-      $$ReaderSettingsTableTableManager(_db, _db.readerSettings);
+  $$ReaderPreferencesTableTableManager get readerPreferences =>
+      $$ReaderPreferencesTableTableManager(_db, _db.readerPreferences);
   $$SearchIndexTableTableManager get searchIndex =>
       $$SearchIndexTableTableManager(_db, _db.searchIndex);
 }

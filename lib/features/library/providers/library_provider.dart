@@ -78,7 +78,7 @@ class LibraryNotifier extends StateNotifier<AsyncValue<void>> {
       return await _processAndInsertFile(file);
     } catch (e, st) {
       state = AsyncError(e, st);
-      return null;
+      rethrow;
     }
   }
 
@@ -93,7 +93,7 @@ class LibraryNotifier extends StateNotifier<AsyncValue<void>> {
       return await _processAndInsertFile(file);
     } catch (e, st) {
       state = AsyncError(e, st);
-      return null;
+      rethrow;
     }
   }
 
