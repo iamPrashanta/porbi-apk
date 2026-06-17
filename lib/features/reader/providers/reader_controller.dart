@@ -123,11 +123,7 @@ class ReaderController extends StateNotifier<ReaderState> {
     _saveProgress();
   }
 
-  void updateScrollPosition(double position) {
-    state = state.copyWith(scrollPosition: position);
-  }
-
-  Future<void> _saveProgress() async {
+  Future<void> saveScrollPositionToDb(double position) async {
     final currentState = state;
     if (currentState.book == null) return;
 
@@ -143,7 +139,28 @@ class ReaderController extends StateNotifier<ReaderState> {
         percentage: Value(percentage),
         lastRead: Value(DateTime.now()),
         chapterIndex: Value(currentState.currentChapterIndex),
-        scrollOffset: Value(currentState.scrollPosition.toInt()),
+        scrollOffset: Value(position.toInt()),
+      ),
+    );
+  }
+
+  Future<void> _saveProgress([double? currentScrollOffset]) async {
+    final currentState = state;
+    if (currentState.book == null) return;
+
+    final percentage = currentState.chapters.isEmpty
+        ? 0.0
+        : (currentState.currentChapterIndex + 1) / currentState.chapters.length;
+
+    await _db.upsertProgress(
+      ReadingProgressesCompanion(
+        id: Value(currentState.book!.id),
+        bookId: Value(currentState.book!.id),
+        position: Value(currentState.currentChapterIndex),
+        percentage: Value(percentage),
+        lastRead: Value(DateTime.now()),
+        chapterIndex: Value(currentState.currentChapterIndex),
+        scrollOffset: Value(currentScrollOffset?.toInt() ?? currentState.scrollPosition.toInt()),
       ),
     );
 
@@ -155,12 +172,14 @@ class ReaderController extends StateNotifier<ReaderState> {
     );
   }
 
-  Future<void> saveProgressOnExit() async {
-    await _saveProgress();
+  Future<void> saveProgressOnExit(double currentScrollOffset) async {
+    await _saveProgress(currentScrollOffset);
   }
 
   @override
   void dispose() {
+    // If disposing without an explicit exit save, we don't have the scroll controller.
+    // It's safer to not overwrite the DB's scroll offset here unless we track it locally.
     _saveProgress();
     super.dispose();
   }

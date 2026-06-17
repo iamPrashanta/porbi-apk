@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:porbi/core/theme/app_theme.dart';
 import 'package:porbi/core/theme/reader_themes.dart';
@@ -32,6 +34,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<int> _searchResults = [];
   int _currentSearchIndex = 0;
+  Timer? _scrollDebounce;
 
   @override
   void initState() {
@@ -46,15 +49,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     _scrollService.scrollController.addListener(() {
       if (_scrollService.scrollController.hasClients) {
-        ref.read(readerProvider.notifier).updateScrollPosition(
-              _scrollService.scrollController.offset,
-            );
+        if (_scrollDebounce?.isActive ?? false) _scrollDebounce!.cancel();
+        _scrollDebounce = Timer(const Duration(milliseconds: 500), () {
+          if (mounted && _scrollService.scrollController.hasClients) {
+            ref.read(readerProvider.notifier).saveScrollPositionToDb(
+                  _scrollService.scrollController.offset,
+                );
+          }
+        });
       }
     });
   }
 
   @override
   void dispose() {
+    _scrollDebounce?.cancel();
     _scrollService.dispose();
     _searchController.dispose();
     super.dispose();
@@ -75,18 +84,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     // );
   }
 
+  void _handleBack() {
+    final state = ref.read(readerProvider);
+    final currentOffset = _scrollService.scrollController.hasClients
+        ? _scrollService.scrollController.offset
+        : state.scrollPosition;
+    ref.read(readerProvider.notifier).saveProgressOnExit(currentOffset);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(readerProvider);
     final prefsState = ref.watch(readerPreferencesProvider);
 
-    debugPrint(
-      'Reader build: '
-      'loading=${state.isLoading} '
-      'error=${state.error} '
-      'chapters=${state.chapters.length}'
-    );
-    
     if (prefsState.isLoading || prefsState.preferences == null) {
       if (prefsState.error != null) {
         return Scaffold(
@@ -189,23 +205,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final topInset = safeTop + appBarHeight;
     final bottomInset = safeBottom + dockHeight;
 
-    // --- DEBUG LOGGING REQUESTED BY USER ---
-    final chapterCount = state.chapters.length;
-    final content = state.currentChapter?.content ?? '';
-    debugPrint('Reader loaded');
-    debugPrint('Chapter count: $chapterCount');
-    debugPrint('Content length: ${content.length}');
-
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) return;
 
-        ref.read(readerProvider.notifier).saveProgressOnExit();
+        final currentOffset = _scrollService.scrollController.hasClients
+            ? _scrollService.scrollController.offset
+            : state.scrollPosition;
+        ref.read(readerProvider.notifier).saveProgressOnExit(currentOffset);
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       },
       child: Scaffold(
         backgroundColor: readerTheme.backgroundColor,
+        resizeToAvoidBottomInset: false,
         extendBodyBehindAppBar: true,
         extendBody: true,
         body: SafeArea(
@@ -243,31 +256,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 ),
               ),
 
-              // ─── User Requested Debug Overlay ───
-              Positioned(
-                top: topInset + 20,
-                left: 20,
-                right: 20,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('PIPELINE AUDIT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      Text('Chapters: $chapterCount', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                      Text('Content Length: ${content.length}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                      Text('Theme: ${readerTheme.name}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                      Text('Text: ${readerTheme.textColor}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                      Text('Bg: ${readerTheme.backgroundColor}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ),
 
               // ─── Top Controls ──────────────────────────────────
               ReaderAppBar(
@@ -277,6 +265,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 onToggleSearch: () => setState(() => _showSearch = !_showSearch),
                 onShowChapters: () => _showChapterDrawer(readerTheme),
                 onAddBookmark: () => _addBookmark(null),
+                onBackPressed: _handleBack,
               ),
 
               // ─── Bottom Dock ───────────────────────────────
@@ -393,20 +382,82 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final state = ref.read(readerProvider);
     if (state.book == null) return;
 
-    final title = 'Ch. ${state.currentChapterIndex + 1}';
-    ref.read(bookmarksNotifierProvider.notifier).addBookmark(
-          bookId: state.book!.id,
-          position: state.currentChapterIndex,
-          title: title,
-          chapterIndex: state.currentChapterIndex,
-          excerpt: excerpt,
-        );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Bookmark added'),
-        duration: Duration(seconds: 1),
+    final defaultTitle = 'Ch. ${state.currentChapterIndex + 1}';
+    final readerTheme = ReaderThemes.getTheme(
+      ReaderThemeMode.values.firstWhere(
+        (e) => e.name == ref.read(readerPreferencesProvider).preferences?.themeMode,
+        orElse: () => ReaderThemeMode.light,
       ),
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: readerTheme.backgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final titleController = TextEditingController(text: defaultTitle);
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Add Bookmark', style: TextStyle(color: readerTheme.textColor, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleController,
+                style: TextStyle(color: readerTheme.textColor),
+                decoration: InputDecoration(
+                  labelText: 'Bookmark Title',
+                  labelStyle: TextStyle(color: readerTheme.secondaryTextColor),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: readerTheme.secondaryTextColor.withValues(alpha: 0.5))),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: readerTheme.accentColor)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (excerpt != null) ...[
+                Text('Excerpt', style: TextStyle(color: readerTheme.secondaryTextColor, fontSize: 12)),
+                const SizedBox(height: 4),
+                Text('"$excerpt"', style: TextStyle(color: readerTheme.textColor, fontStyle: FontStyle.italic), maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 16),
+              ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('Cancel', style: TextStyle(color: readerTheme.secondaryTextColor)),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      ref.read(bookmarksNotifierProvider.notifier).addBookmark(
+                            bookId: state.book!.id,
+                            position: state.currentChapterIndex,
+                            title: titleController.text.isEmpty ? defaultTitle : titleController.text,
+                            chapterIndex: state.currentChapterIndex,
+                            excerpt: excerpt,
+                          );
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bookmark added'), duration: Duration(seconds: 1)));
+                    },
+                    style: FilledButton.styleFrom(backgroundColor: readerTheme.accentColor),
+                    child: const Text('Save'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -414,64 +465,91 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final state = ref.read(readerProvider);
     if (state.book == null) return;
 
-    showDialog(
+    final readerTheme = ReaderThemes.getTheme(
+      ReaderThemeMode.values.firstWhere(
+        (e) => e.name == ref.read(readerPreferencesProvider).preferences?.themeMode,
+        orElse: () => ReaderThemeMode.light,
+      ),
+    );
+
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: readerTheme.backgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) {
         final controller = TextEditingController();
-        return AlertDialog(
-          title: const Text('Add Note'),
-          content: Column(
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 24,
+          ),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text('Add Note', style: TextStyle(color: readerTheme.textColor, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                  color: readerTheme.textColor.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '"$selectedText"',
-                  style: const TextStyle(
-                    fontStyle: FontStyle.italic,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(fontStyle: FontStyle.italic, fontSize: 13, color: readerTheme.secondaryTextColor),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextField(
                 controller: controller,
                 maxLines: 4,
-                decoration: const InputDecoration(
+                style: TextStyle(color: readerTheme.textColor),
+                decoration: InputDecoration(
                   hintText: 'Write your note...',
-                  border: OutlineInputBorder(),
+                  hintStyle: TextStyle(color: readerTheme.secondaryTextColor),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: readerTheme.secondaryTextColor.withValues(alpha: 0.5))),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: readerTheme.secondaryTextColor.withValues(alpha: 0.3))),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: readerTheme.accentColor)),
                 ),
               ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('Cancel', style: TextStyle(color: readerTheme.secondaryTextColor)),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () {
+                      if (controller.text.isNotEmpty) {
+                        ref.read(notesNotifierProvider.notifier).addNote(
+                              bookId: state.book!.id,
+                              selectedText: selectedText,
+                              noteContent: controller.text,
+                              position: state.currentChapterIndex,
+                              chapterIndex: state.currentChapterIndex,
+                            );
+                      }
+                      Navigator.pop(ctx);
+                    },
+                    style: FilledButton.styleFrom(backgroundColor: readerTheme.accentColor),
+                    child: const Text('Save'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (controller.text.isNotEmpty) {
-                  ref.read(notesNotifierProvider.notifier).addNote(
-                        bookId: state.book!.id,
-                        selectedText: selectedText,
-                        noteContent: controller.text,
-                        position: state.currentChapterIndex,
-                        chapterIndex: state.currentChapterIndex,
-                      );
-                }
-                Navigator.pop(ctx);
-              },
-              child: const Text('Save'),
-            ),
-          ],
         );
       },
     );
@@ -570,11 +648,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void _showProgressSheet(ReaderThemeConfig readerTheme) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: readerTheme.backgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => ReaderProgressSheet(readerTheme: readerTheme),
+      builder: (ctx) => ReaderProgressSheet(
+        readerTheme: readerTheme,
+        scrollController: _scrollService.scrollController,
+      ),
     );
   }
 
@@ -595,6 +677,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     if (state.book == null) return;
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: readerTheme.backgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -704,6 +787,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: readerTheme.backgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

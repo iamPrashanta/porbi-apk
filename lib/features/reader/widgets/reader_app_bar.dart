@@ -12,6 +12,7 @@ class ReaderAppBar extends ConsumerWidget {
   final VoidCallback onToggleSearch;
   final VoidCallback onShowChapters;
   final VoidCallback onAddBookmark;
+  final VoidCallback onBackPressed;
   final bool isVisible;
 
   const ReaderAppBar({
@@ -21,6 +22,7 @@ class ReaderAppBar extends ConsumerWidget {
     required this.onToggleSearch,
     required this.onShowChapters,
     required this.onAddBookmark,
+    required this.onBackPressed,
     required this.isVisible,
   });
 
@@ -66,15 +68,7 @@ class ReaderAppBar extends ConsumerWidget {
                           Icons.arrow_back_rounded,
                           color: readerTheme.textColor,
                         ),
-                        onPressed: () {
-                          ref.read(readerProvider.notifier).saveProgressOnExit();
-                          SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-                          if (context.canPop()) {
-                            context.pop();
-                          } else {
-                            context.go('/');
-                          }
-                        },
+                        onPressed: onBackPressed,
                       ),
                       Expanded(
                         child: Column(

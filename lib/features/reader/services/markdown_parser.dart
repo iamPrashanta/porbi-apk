@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:porbi/core/services/file_service.dart';
 import 'package:porbi/models/chapter.dart';
 
@@ -7,14 +9,26 @@ class MarkdownParser {
   MarkdownParser(this._fileService);
 
   Future<List<Chapter>> parse(String filePath) async {
+    final file = File(filePath);
+    final fileSize = await file.length();
     final content = await _fileService.readFileContent(filePath);
+    
+    debugPrint('=== PARSER AUDIT ===');
+    debugPrint('File Size: $fileSize bytes');
+    debugPrint('Raw Content Length: ${content.length}');
 
     // Try to split by headings for chapter navigation
-    final chapters = _splitByHeadings(content);
+    var chapters = _splitByHeadings(content);
 
     if (chapters.isEmpty) {
-      return [Chapter(index: 0, title: 'Full Document', content: content)];
+      chapters = [Chapter(index: 0, title: 'Full Document', content: content)];
     }
+
+    debugPrint('Parsed Chapter Count: ${chapters.length}');
+    for (int i = 0; i < chapters.length; i++) {
+      debugPrint('Chapter $i length: ${chapters[i].content.length}');
+    }
+    debugPrint('====================');
 
     return chapters;
   }

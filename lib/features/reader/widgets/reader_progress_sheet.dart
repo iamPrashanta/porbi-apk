@@ -3,14 +3,61 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:porbi/core/theme/reader_themes.dart';
 import 'package:porbi/features/reader/providers/reader_provider.dart';
 
-class ReaderProgressSheet extends ConsumerWidget {
+class ReaderProgressSheet extends ConsumerStatefulWidget {
   final ReaderThemeConfig readerTheme;
+  final ScrollController scrollController;
 
-  const ReaderProgressSheet({super.key, required this.readerTheme});
+  const ReaderProgressSheet({
+    super.key,
+    required this.readerTheme,
+    required this.scrollController,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReaderProgressSheet> createState() => _ReaderProgressSheetState();
+}
+
+class _ReaderProgressSheetState extends ConsumerState<ReaderProgressSheet> {
+  double _currentProgress = 0.0;
+  bool _isDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateProgress();
+    widget.scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController.removeListener(_scrollListener);
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (!_isDragging) {
+      _updateProgress();
+    }
+  }
+
+  void _updateProgress() {
+    if (!widget.scrollController.hasClients) return;
+    
+    final maxScroll = widget.scrollController.position.maxScrollExtent;
+    final currentScroll = widget.scrollController.offset;
+    
+    if (maxScroll <= 0) return;
+
+    setState(() {
+      _currentProgress = (currentScroll / maxScroll).clamp(0.0, 1.0);
+    });
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(readerProvider);
+    final theme = widget.readerTheme;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
@@ -21,7 +68,7 @@ class ReaderProgressSheet extends ConsumerWidget {
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: readerTheme.textColor.withValues(alpha: 0.2),
+              color: theme.textColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -29,90 +76,55 @@ class ReaderProgressSheet extends ConsumerWidget {
           Text(
             'Reading Progress',
             style: TextStyle(
-              color: readerTheme.textColor,
+              color: theme.textColor,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 24),
-          if (state.chapters.length > 1)
-            Row(
+          if (widget.scrollController.hasClients && widget.scrollController.position.maxScrollExtent > 0)
+            Column(
               children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.chevron_left_rounded,
-                    color: state.hasPreviousChapter
-                        ? readerTheme.textColor
-                        : readerTheme.textColor.withValues(alpha: 0.3),
+                SliderTheme(
+                  data: SliderThemeData(
+                    trackHeight: 3,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 6,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 14,
+                    ),
+                    activeTrackColor: theme.accentColor,
+                    inactiveTrackColor: theme.textColor.withValues(alpha: 0.12),
+                    thumbColor: theme.accentColor,
                   ),
-                  onPressed: state.hasPreviousChapter
-                      ? () {
-                          ref.read(readerProvider.notifier).previousChapter();
-                        }
-                      : null,
-                ),
-                Expanded(
-                  child: Column(
-                    children: [
-                      SliderTheme(
-                        data: SliderThemeData(
-                          trackHeight: 3,
-                          thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 6,
-                          ),
-                          overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 14,
-                          ),
-                          activeTrackColor: readerTheme.accentColor,
-                          inactiveTrackColor:
-                              readerTheme.textColor.withValues(alpha: 0.12),
-                          thumbColor: readerTheme.accentColor,
-                        ),
-                        child: Slider(
-                          value: state.currentChapterIndex.toDouble(),
-                          min: 0,
-                          max: (state.chapters.length - 1)
-                              .toDouble()
-                              .clamp(0, double.infinity),
-                          divisions: state.chapters.length > 1
-                              ? state.chapters.length - 1
-                              : null,
-                          onChanged: (value) {
-                            ref
-                                .read(readerProvider.notifier)
-                                .goToChapter(value.toInt());
-                          },
-                        ),
-                      ),
-                      Text(
-                        '${state.currentChapterIndex + 1} of ${state.chapters.length}',
-                        style: TextStyle(
-                          color: readerTheme.secondaryTextColor,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
+                  child: Slider(
+                    value: _currentProgress,
+                    min: 0.0,
+                    max: 1.0,
+                    onChangeStart: (_) => setState(() => _isDragging = true),
+                    onChanged: (value) {
+                      setState(() => _currentProgress = value);
+                      final maxScroll = widget.scrollController.position.maxScrollExtent;
+                      widget.scrollController.jumpTo(value * maxScroll);
+                    },
+                    onChangeEnd: (_) => setState(() => _isDragging = false),
                   ),
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.chevron_right_rounded,
-                    color: state.hasNextChapter
-                        ? readerTheme.textColor
-                        : readerTheme.textColor.withValues(alpha: 0.3),
+                Text(
+                  '${(_currentProgress * 100).toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    color: theme.secondaryTextColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
-                  onPressed: state.hasNextChapter
-                      ? () {
-                          ref.read(readerProvider.notifier).nextChapter();
-                        }
-                      : null,
                 ),
               ],
             )
           else
             Text(
-              'No chapters available.',
-              style: TextStyle(color: readerTheme.secondaryTextColor),
+              'Progress not available.',
+              style: TextStyle(color: theme.secondaryTextColor),
             ),
         ],
       ),
