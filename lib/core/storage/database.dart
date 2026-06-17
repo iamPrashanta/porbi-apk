@@ -39,6 +39,8 @@ class Bookmarks extends Table {
   IntColumn get chapterIndex => integer().nullable()();
   TextColumn get title => text()();
   TextColumn get excerpt => text().nullable()();
+  TextColumn get previewText => text().nullable()();
+  IntColumn get scrollOffset => integer().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -118,7 +120,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -141,6 +143,10 @@ class AppDatabase extends _$AppDatabase {
             await into(readerPreferences).insert(
               const ReaderPreferencesCompanion(id: Value('global')),
             );
+          }
+          if (from < 4) {
+            await m.addColumn(bookmarks, bookmarks.scrollOffset);
+            await m.addColumn(bookmarks, bookmarks.previewText);
           }
         },
       );
@@ -331,6 +337,8 @@ class AppDatabase extends _$AppDatabase {
               'chapterIndex': b.chapterIndex,
               'title': b.title,
               'excerpt': b.excerpt,
+              'previewText': b.previewText,
+              'scrollOffset': b.scrollOffset,
               'createdAt': b.createdAt.toIso8601String(),
             },
           )
@@ -446,6 +454,8 @@ class AppDatabase extends _$AppDatabase {
             chapterIndex: Value(b['chapterIndex'] as int?),
             title: b['title'] as String,
             excerpt: Value(b['excerpt'] as String?),
+            previewText: Value(b['previewText'] as String?),
+            scrollOffset: Value(b['scrollOffset'] as int?),
             createdAt: DateTime.parse(b['createdAt'] as String),
           ),
         );

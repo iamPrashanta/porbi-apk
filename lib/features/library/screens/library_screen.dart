@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:porbi/core/theme/app_theme.dart';
 import 'package:porbi/core/utils/date_utils.dart';
 import 'package:porbi/features/library/providers/library_provider.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:porbi/models/book.dart';
 
 class LibraryScreen extends ConsumerWidget {
@@ -200,18 +201,46 @@ class _BookGridItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Material(
-      borderRadius: BorderRadius.circular(16),
-      color: theme.cardTheme.color,
-      child: InkWell(
+    return Slidable(
+      key: ValueKey(book.id),
+      endActionPane: ActionPane(
+        motion: const ScrollMotion(),
+        extentRatio: 0.5,
+        children: [
+          SlidableAction(
+            onPressed: (context) {
+              context.push('/reader/${book.id}');
+            },
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
+            icon: Icons.menu_book_rounded,
+            label: 'Open',
+            borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+          ),
+          SlidableAction(
+            onPressed: (context) {
+              ref.read(libraryNotifierProvider.notifier).deleteBook(book);
+            },
+            backgroundColor: AppColors.error,
+            foregroundColor: Colors.white,
+            icon: Icons.delete_outline_rounded,
+            label: 'Delete',
+            borderRadius: const BorderRadius.horizontal(right: Radius.circular(16)),
+          ),
+        ],
+      ),
+      child: Material(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => context.push('/reader/${book.id}'),
-        onLongPress: () => _showContextMenu(context),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        color: theme.cardTheme.color,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => context.push('/reader/${book.id}'),
+          onLongPress: () => _showContextMenu(context),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Icon
               Container(
                 width: 48,
@@ -281,6 +310,7 @@ class _BookGridItem extends StatelessWidget {
               ],
             ],
           ),
+        ),
         ),
       ),
     );
@@ -374,106 +404,135 @@ class _BookListItem extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        borderRadius: BorderRadius.circular(14),
-        color: theme.cardTheme.color,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => context.push('/reader/${book.id}'),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: _getFileTypeColor(
-                      book.fileType,
-                    ).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Slidable(
+        key: ValueKey(book.id),
+        endActionPane: ActionPane(
+          motion: const ScrollMotion(),
+          extentRatio: 0.5,
+          children: [
+            SlidableAction(
+              onPressed: (context) {
+                context.push('/reader/${book.id}');
+              },
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              icon: Icons.menu_book_rounded,
+              label: 'Open',
+            ),
+            SlidableAction(
+              onPressed: (context) {
+                ref.read(libraryNotifierProvider.notifier).deleteBook(book);
+              },
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              icon: Icons.delete_outline_rounded,
+              label: 'Delete',
+              borderRadius: const BorderRadius.horizontal(right: Radius.circular(16)),
+            ),
+          ],
+        ),
+        child: Material(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => context.push('/reader/${book.id}'),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _getFileTypeColor(
+                        book.fileType,
+                      ).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _getFileTypeIcon(book.fileType),
+                      color: _getFileTypeColor(book.fileType),
+                      size: 22,
+                    ),
                   ),
-                  child: Icon(
-                    _getFileTypeIcon(book.fileType),
-                    color: _getFileTypeColor(book.fileType),
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        book.title,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            book.fileType.displayName,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.5,
-                              ),
-                            ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          book.title,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
-                          if (book.lastOpened != null) ...[
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
                             Text(
-                              ' · ${AppDateUtils.formatRelative(book.lastOpened!)}',
+                              book.fileType.displayName,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurface.withValues(
                                   alpha: 0.5,
                                 ),
                               ),
                             ),
+                            if (book.lastOpened != null) ...[
+                              Text(
+                                ' · ${AppDateUtils.formatRelative(book.lastOpened!)}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (book.readingProgress > 0)
-                  SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          value: book.readingProgress,
-                          strokeWidth: 3,
-                          backgroundColor: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.08),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            AppColors.primaryPurple,
-                          ),
-                        ),
-                        Text(
-                          '${(book.readingProgress * 100).toInt()}',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
                         ),
                       ],
                     ),
                   ),
-                if (book.isFavorite) ...[
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.favorite_rounded,
-                    size: 18,
-                    color: AppColors.error,
-                  ),
+                  if (book.readingProgress > 0)
+                    SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            value: book.readingProgress,
+                            strokeWidth: 3,
+                            backgroundColor: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.08),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppColors.primaryPurple,
+                            ),
+                          ),
+                          Text(
+                            '${(book.readingProgress * 100).toInt()}',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (book.isFavorite) ...[
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.favorite_rounded,
+                      size: 18,
+                      color: AppColors.error,
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

@@ -38,6 +38,8 @@ class BookmarksNotifier extends StateNotifier<AsyncValue<void>> {
     required String title,
     int? chapterIndex,
     String? excerpt,
+    String? previewText,
+    int? scrollOffset,
   }) async {
     try {
       await _db.insertBookmark(
@@ -48,6 +50,8 @@ class BookmarksNotifier extends StateNotifier<AsyncValue<void>> {
           chapterIndex: Value(chapterIndex),
           title: title,
           excerpt: Value(excerpt),
+          previewText: Value(previewText),
+          scrollOffset: Value(scrollOffset),
           createdAt: DateTime.now(),
         ),
       );

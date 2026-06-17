@@ -20,6 +20,8 @@ import 'package:porbi/features/reader/widgets/reader_progress_sheet.dart';
 import 'package:porbi/features/reader/widgets/reader_settings_sheet.dart';
 import 'package:porbi/features/reader/widgets/reader_bookmarks_sheet.dart';
 import 'package:porbi/features/reader/widgets/reader_notes_sheet.dart';
+import 'package:porbi/features/reader/providers/search_provider.dart';
+import 'package:porbi/features/reader/widgets/reader_search_overlay.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   final String bookId;
@@ -32,10 +34,7 @@ class ReaderScreen extends ConsumerStatefulWidget {
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   final ReaderScrollService _scrollService = ReaderScrollService();
-  bool _showSearch = false;
-  final TextEditingController _searchController = TextEditingController();
-  List<int> _searchResults = [];
-  int _currentSearchIndex = 0;
+  final GlobalKey _activeMatchKey = GlobalKey();
   Timer? _scrollDebounce;
 
   @override
@@ -67,7 +66,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void dispose() {
     _scrollDebounce?.cancel();
     _scrollService.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -104,6 +102,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(readerProvider);
     final prefsState = ref.watch(readerPreferencesProvider);
+    final searchState = ref.watch(searchProvider);
+
+    ref.listen<SearchState>(searchProvider, (previous, next) {
+      if (previous?.currentMatchIndex != next.currentMatchIndex && next.currentMatchIndex != -1) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (_activeMatchKey.currentContext != null) {
+            Scrollable.ensureVisible(
+              _activeMatchKey.currentContext!,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubic,
+              alignment: 0.3,
+            );
+          }
+        });
+      }
+    });
 
     if (prefsState.isLoading || prefsState.preferences == null) {
       if (prefsState.error != null) {
@@ -247,6 +261,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 child: SizedBox.expand(
                   child: ReaderBody(
                     state: state,
+                    searchState: searchState,
+                    activeMatchKey: _activeMatchKey,
                     preferences: prefs,
                     readerTheme: readerTheme,
                     scrollController: _scrollService.scrollController,
@@ -264,7 +280,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 state: state,
                 readerTheme: readerTheme,
                 isVisible: _scrollService.isVisible,
-                onToggleSearch: () => setState(() => _showSearch = !_showSearch),
+                onToggleSearch: () {
+                  final searchNotifier = ref.read(searchProvider.notifier);
+                  if (searchState.searchResultsVisible) {
+                    searchNotifier.hideSearch();
+                  } else {
+                    searchNotifier.showSearch();
+                  }
+                },
                 onShowChapters: () => _showChapterDrawer(readerTheme),
                 onAddBookmark: () => _addBookmark(null),
                 onBackPressed: _handleBack,
@@ -283,12 +306,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               ),
 
               // ─── Search Bar ────────────────────────────────────
-              if (_showSearch)
+              if (searchState.searchResultsVisible)
                 Positioned(
                   top: topInset + 8,
                   left: 16,
                   right: 16,
-                  child: _buildSearchBar(readerTheme),
+                  child: ReaderSearchOverlay(
+                    readerTheme: readerTheme,
+                    onClose: () => ref.read(searchProvider.notifier).hideSearch(),
+                  ),
                 ),
             ],
           ),
@@ -297,88 +323,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  Widget _buildSearchBar(ReaderThemeConfig readerTheme) {
-    return Material(
-      elevation: 8,
-      borderRadius: BorderRadius.circular(14),
-      color: readerTheme.backgroundColor,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                style: TextStyle(color: readerTheme.textColor),
-                decoration: InputDecoration(
-                  hintText: 'Search in document...',
-                  hintStyle: TextStyle(color: readerTheme.secondaryTextColor),
-                  border: InputBorder.none,
-                  filled: false,
-                ),
-                onSubmitted: (query) => _performSearch(query),
-              ),
-            ),
-            if (_searchResults.isNotEmpty)
-              Text(
-                '${_currentSearchIndex + 1}/${_searchResults.length}',
-                style: TextStyle(
-                  color: readerTheme.secondaryTextColor,
-                  fontSize: 12,
-                ),
-              ),
-            IconButton(
-              icon: Icon(
-                Icons.close_rounded,
-                color: readerTheme.textColor,
-                size: 20,
-              ),
-              onPressed: () {
-                setState(() {
-                  _showSearch = false;
-                  _searchController.clear();
-                  _searchResults = [];
-                });
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  void _performSearch(String query) {
-    if (query.isEmpty) return;
-    final state = ref.read(readerProvider);
-    final chapter = state.currentChapter;
-    if (chapter == null) return;
-
-    final content = chapter.content.toLowerCase();
-    final lowerQuery = query.toLowerCase();
-    final results = <int>[];
-
-    int index = 0;
-    while (true) {
-      index = content.indexOf(lowerQuery, index);
-      if (index == -1) break;
-      results.add(index);
-      index += lowerQuery.length;
-    }
-
-    setState(() {
-      _searchResults = results;
-      _currentSearchIndex = 0;
-    });
-
-    if (results.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Found ${results.length} results'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
-    }
-  }
 
   void _addBookmark(String? excerpt) {
     final state = ref.read(readerProvider);
@@ -440,12 +385,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   ),
                   FilledButton(
                     onPressed: () {
+                      final currentOffset = _scrollService.scrollController.hasClients ? _scrollService.scrollController.offset.toInt() : 0;
                       ref.read(bookmarksNotifierProvider.notifier).addBookmark(
                             bookId: state.book!.id,
                             position: state.currentChapterIndex,
                             title: titleController.text.isEmpty ? defaultTitle : titleController.text,
                             chapterIndex: state.currentChapterIndex,
                             excerpt: excerpt,
+                            previewText: excerpt,
+                            scrollOffset: currentOffset,
                           );
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bookmark added'), duration: Duration(seconds: 1)));
@@ -682,7 +630,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => ReaderBookmarksSheet(readerTheme: readerTheme),
+      builder: (ctx) => ReaderBookmarksSheet(
+        readerTheme: readerTheme,
+        onBookmarkTap: (chapterIndex, scrollOffset) {
+          ref.read(readerProvider.notifier).goToChapter(chapterIndex);
+          if (scrollOffset != null) {
+            Future.delayed(const Duration(milliseconds: 150), () {
+              if (_scrollService.scrollController.hasClients) {
+                _scrollService.scrollController.animateTo(
+                  scrollOffset.toDouble(),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
+            });
+          }
+        },
+      ),
     );
   }
 

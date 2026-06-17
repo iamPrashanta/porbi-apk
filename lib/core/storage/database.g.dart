@@ -728,6 +728,18 @@ class $BookmarksTable extends Bookmarks
   late final GeneratedColumn<String> excerpt = GeneratedColumn<String>(
       'excerpt', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _previewTextMeta =
+      const VerificationMeta('previewText');
+  @override
+  late final GeneratedColumn<String> previewText = GeneratedColumn<String>(
+      'preview_text', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _scrollOffsetMeta =
+      const VerificationMeta('scrollOffset');
+  @override
+  late final GeneratedColumn<int> scrollOffset = GeneratedColumn<int>(
+      'scroll_offset', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -735,8 +747,17 @@ class $BookmarksTable extends Bookmarks
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, bookId, position, chapterIndex, title, excerpt, createdAt];
+  List<GeneratedColumn> get $columns => [
+        id,
+        bookId,
+        position,
+        chapterIndex,
+        title,
+        excerpt,
+        previewText,
+        scrollOffset,
+        createdAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -780,6 +801,18 @@ class $BookmarksTable extends Bookmarks
       context.handle(_excerptMeta,
           excerpt.isAcceptableOrUnknown(data['excerpt']!, _excerptMeta));
     }
+    if (data.containsKey('preview_text')) {
+      context.handle(
+          _previewTextMeta,
+          previewText.isAcceptableOrUnknown(
+              data['preview_text']!, _previewTextMeta));
+    }
+    if (data.containsKey('scroll_offset')) {
+      context.handle(
+          _scrollOffsetMeta,
+          scrollOffset.isAcceptableOrUnknown(
+              data['scroll_offset']!, _scrollOffsetMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -807,6 +840,10 @@ class $BookmarksTable extends Bookmarks
           .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
       excerpt: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}excerpt']),
+      previewText: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}preview_text']),
+      scrollOffset: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}scroll_offset']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
     );
@@ -825,6 +862,8 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
   final int? chapterIndex;
   final String title;
   final String? excerpt;
+  final String? previewText;
+  final int? scrollOffset;
   final DateTime createdAt;
   const BookmarksData(
       {required this.id,
@@ -833,6 +872,8 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
       this.chapterIndex,
       required this.title,
       this.excerpt,
+      this.previewText,
+      this.scrollOffset,
       required this.createdAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -846,6 +887,12 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
     map['title'] = Variable<String>(title);
     if (!nullToAbsent || excerpt != null) {
       map['excerpt'] = Variable<String>(excerpt);
+    }
+    if (!nullToAbsent || previewText != null) {
+      map['preview_text'] = Variable<String>(previewText);
+    }
+    if (!nullToAbsent || scrollOffset != null) {
+      map['scroll_offset'] = Variable<int>(scrollOffset);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -863,6 +910,12 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
       excerpt: excerpt == null && nullToAbsent
           ? const Value.absent()
           : Value(excerpt),
+      previewText: previewText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previewText),
+      scrollOffset: scrollOffset == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scrollOffset),
       createdAt: Value(createdAt),
     );
   }
@@ -877,6 +930,8 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
       chapterIndex: serializer.fromJson<int?>(json['chapterIndex']),
       title: serializer.fromJson<String>(json['title']),
       excerpt: serializer.fromJson<String?>(json['excerpt']),
+      previewText: serializer.fromJson<String?>(json['previewText']),
+      scrollOffset: serializer.fromJson<int?>(json['scrollOffset']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -890,6 +945,8 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
       'chapterIndex': serializer.toJson<int?>(chapterIndex),
       'title': serializer.toJson<String>(title),
       'excerpt': serializer.toJson<String?>(excerpt),
+      'previewText': serializer.toJson<String?>(previewText),
+      'scrollOffset': serializer.toJson<int?>(scrollOffset),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -901,6 +958,8 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
           Value<int?> chapterIndex = const Value.absent(),
           String? title,
           Value<String?> excerpt = const Value.absent(),
+          Value<String?> previewText = const Value.absent(),
+          Value<int?> scrollOffset = const Value.absent(),
           DateTime? createdAt}) =>
       BookmarksData(
         id: id ?? this.id,
@@ -910,6 +969,9 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
             chapterIndex.present ? chapterIndex.value : this.chapterIndex,
         title: title ?? this.title,
         excerpt: excerpt.present ? excerpt.value : this.excerpt,
+        previewText: previewText.present ? previewText.value : this.previewText,
+        scrollOffset:
+            scrollOffset.present ? scrollOffset.value : this.scrollOffset,
         createdAt: createdAt ?? this.createdAt,
       );
   BookmarksData copyWithCompanion(BookmarksCompanion data) {
@@ -922,6 +984,11 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
           : this.chapterIndex,
       title: data.title.present ? data.title.value : this.title,
       excerpt: data.excerpt.present ? data.excerpt.value : this.excerpt,
+      previewText:
+          data.previewText.present ? data.previewText.value : this.previewText,
+      scrollOffset: data.scrollOffset.present
+          ? data.scrollOffset.value
+          : this.scrollOffset,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -935,14 +1002,16 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
           ..write('chapterIndex: $chapterIndex, ')
           ..write('title: $title, ')
           ..write('excerpt: $excerpt, ')
+          ..write('previewText: $previewText, ')
+          ..write('scrollOffset: $scrollOffset, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id, bookId, position, chapterIndex, title, excerpt, createdAt);
+  int get hashCode => Object.hash(id, bookId, position, chapterIndex, title,
+      excerpt, previewText, scrollOffset, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -953,6 +1022,8 @@ class BookmarksData extends DataClass implements Insertable<BookmarksData> {
           other.chapterIndex == this.chapterIndex &&
           other.title == this.title &&
           other.excerpt == this.excerpt &&
+          other.previewText == this.previewText &&
+          other.scrollOffset == this.scrollOffset &&
           other.createdAt == this.createdAt);
 }
 
@@ -963,6 +1034,8 @@ class BookmarksCompanion extends UpdateCompanion<BookmarksData> {
   final Value<int?> chapterIndex;
   final Value<String> title;
   final Value<String?> excerpt;
+  final Value<String?> previewText;
+  final Value<int?> scrollOffset;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const BookmarksCompanion({
@@ -972,6 +1045,8 @@ class BookmarksCompanion extends UpdateCompanion<BookmarksData> {
     this.chapterIndex = const Value.absent(),
     this.title = const Value.absent(),
     this.excerpt = const Value.absent(),
+    this.previewText = const Value.absent(),
+    this.scrollOffset = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -982,6 +1057,8 @@ class BookmarksCompanion extends UpdateCompanion<BookmarksData> {
     this.chapterIndex = const Value.absent(),
     required String title,
     this.excerpt = const Value.absent(),
+    this.previewText = const Value.absent(),
+    this.scrollOffset = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -996,6 +1073,8 @@ class BookmarksCompanion extends UpdateCompanion<BookmarksData> {
     Expression<int>? chapterIndex,
     Expression<String>? title,
     Expression<String>? excerpt,
+    Expression<String>? previewText,
+    Expression<int>? scrollOffset,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -1006,6 +1085,8 @@ class BookmarksCompanion extends UpdateCompanion<BookmarksData> {
       if (chapterIndex != null) 'chapter_index': chapterIndex,
       if (title != null) 'title': title,
       if (excerpt != null) 'excerpt': excerpt,
+      if (previewText != null) 'preview_text': previewText,
+      if (scrollOffset != null) 'scroll_offset': scrollOffset,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1018,6 +1099,8 @@ class BookmarksCompanion extends UpdateCompanion<BookmarksData> {
       Value<int?>? chapterIndex,
       Value<String>? title,
       Value<String?>? excerpt,
+      Value<String?>? previewText,
+      Value<int?>? scrollOffset,
       Value<DateTime>? createdAt,
       Value<int>? rowid}) {
     return BookmarksCompanion(
@@ -1027,6 +1110,8 @@ class BookmarksCompanion extends UpdateCompanion<BookmarksData> {
       chapterIndex: chapterIndex ?? this.chapterIndex,
       title: title ?? this.title,
       excerpt: excerpt ?? this.excerpt,
+      previewText: previewText ?? this.previewText,
+      scrollOffset: scrollOffset ?? this.scrollOffset,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -1053,6 +1138,12 @@ class BookmarksCompanion extends UpdateCompanion<BookmarksData> {
     if (excerpt.present) {
       map['excerpt'] = Variable<String>(excerpt.value);
     }
+    if (previewText.present) {
+      map['preview_text'] = Variable<String>(previewText.value);
+    }
+    if (scrollOffset.present) {
+      map['scroll_offset'] = Variable<int>(scrollOffset.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1071,6 +1162,8 @@ class BookmarksCompanion extends UpdateCompanion<BookmarksData> {
           ..write('chapterIndex: $chapterIndex, ')
           ..write('title: $title, ')
           ..write('excerpt: $excerpt, ')
+          ..write('previewText: $previewText, ')
+          ..write('scrollOffset: $scrollOffset, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3710,6 +3803,8 @@ typedef $$BookmarksTableCreateCompanionBuilder = BookmarksCompanion Function({
   Value<int?> chapterIndex,
   required String title,
   Value<String?> excerpt,
+  Value<String?> previewText,
+  Value<int?> scrollOffset,
   required DateTime createdAt,
   Value<int> rowid,
 });
@@ -3720,6 +3815,8 @@ typedef $$BookmarksTableUpdateCompanionBuilder = BookmarksCompanion Function({
   Value<int?> chapterIndex,
   Value<String> title,
   Value<String?> excerpt,
+  Value<String?> previewText,
+  Value<int?> scrollOffset,
   Value<DateTime> createdAt,
   Value<int> rowid,
 });
@@ -3765,6 +3862,12 @@ class $$BookmarksTableFilterComposer
 
   ColumnFilters<String> get excerpt => $composableBuilder(
       column: $table.excerpt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get previewText => $composableBuilder(
+      column: $table.previewText, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get scrollOffset => $composableBuilder(
+      column: $table.scrollOffset, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -3815,6 +3918,13 @@ class $$BookmarksTableOrderingComposer
   ColumnOrderings<String> get excerpt => $composableBuilder(
       column: $table.excerpt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get previewText => $composableBuilder(
+      column: $table.previewText, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get scrollOffset => $composableBuilder(
+      column: $table.scrollOffset,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -3862,6 +3972,12 @@ class $$BookmarksTableAnnotationComposer
 
   GeneratedColumn<String> get excerpt =>
       $composableBuilder(column: $table.excerpt, builder: (column) => column);
+
+  GeneratedColumn<String> get previewText => $composableBuilder(
+      column: $table.previewText, builder: (column) => column);
+
+  GeneratedColumn<int> get scrollOffset => $composableBuilder(
+      column: $table.scrollOffset, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -3916,6 +4032,8 @@ class $$BookmarksTableTableManager extends RootTableManager<
             Value<int?> chapterIndex = const Value.absent(),
             Value<String> title = const Value.absent(),
             Value<String?> excerpt = const Value.absent(),
+            Value<String?> previewText = const Value.absent(),
+            Value<int?> scrollOffset = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -3926,6 +4044,8 @@ class $$BookmarksTableTableManager extends RootTableManager<
             chapterIndex: chapterIndex,
             title: title,
             excerpt: excerpt,
+            previewText: previewText,
+            scrollOffset: scrollOffset,
             createdAt: createdAt,
             rowid: rowid,
           ),
@@ -3936,6 +4056,8 @@ class $$BookmarksTableTableManager extends RootTableManager<
             Value<int?> chapterIndex = const Value.absent(),
             required String title,
             Value<String?> excerpt = const Value.absent(),
+            Value<String?> previewText = const Value.absent(),
+            Value<int?> scrollOffset = const Value.absent(),
             required DateTime createdAt,
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -3946,6 +4068,8 @@ class $$BookmarksTableTableManager extends RootTableManager<
             chapterIndex: chapterIndex,
             title: title,
             excerpt: excerpt,
+            previewText: previewText,
+            scrollOffset: scrollOffset,
             createdAt: createdAt,
             rowid: rowid,
           ),

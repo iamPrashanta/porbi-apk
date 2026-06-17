@@ -4,12 +4,18 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:porbi/core/theme/reader_themes.dart';
 import 'package:porbi/features/reader/providers/reader_state.dart';
+import 'package:porbi/features/reader/providers/search_provider.dart';
 import 'package:porbi/models/book.dart';
 import 'package:porbi/core/storage/database.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:html/parser.dart' as html_parser;
+import 'package:html/dom.dart' as dom;
+import 'package:markdown/markdown.dart' as md;
 
 class ReaderBody extends StatelessWidget {
   final ReaderState state;
+  final SearchState searchState;
+  final GlobalKey activeMatchKey;
   final ReaderPreferencesData preferences;
   final ReaderThemeConfig readerTheme;
   final ScrollController scrollController;
@@ -21,6 +27,8 @@ class ReaderBody extends StatelessWidget {
   const ReaderBody({
     super.key,
     required this.state,
+    required this.searchState,
+    required this.activeMatchKey,
     required this.preferences,
     required this.readerTheme,
     required this.scrollController,
@@ -72,9 +80,8 @@ class ReaderBody extends StatelessWidget {
             preferences.horizontalMargin,
             bottomInset + preferences.horizontalMargin,
           ),
-          child: SelectableText(
-            content,
-            style: textStyle,
+          child: SelectableText.rich(
+            TextSpan(children: _buildTxtSpans(content, textStyle)),
             contextMenuBuilder: (context, editableState) {
               return _buildTextSelectionMenu(context, editableState);
             },
@@ -92,7 +99,7 @@ class ReaderBody extends StatelessWidget {
             bottomInset + 24.0,
           ),
           child: MarkdownBody(
-            data: content,
+            data: _highlightMarkdown(content),
             selectable: true,
             styleSheet: MarkdownStyleSheet(
               p: textStyle,
@@ -158,6 +165,10 @@ class ReaderBody extends StatelessWidget {
                 decoration: TextDecoration.underline,
               ),
             ),
+            extensionSet: _createMarkdownExtensionSet(),
+            builders: {
+              'mark': _MarkElementBuilder(readerTheme, searchState.currentMatchIndex, activeMatchKey),
+            },
             onTapLink: (text, href, title) {
               if (href != null) {
                 launchUrl(Uri.parse(href));
@@ -166,8 +177,9 @@ class ReaderBody extends StatelessWidget {
           ),
         );
 
-      case FileType.epub:
       case FileType.html:
+      case FileType.epub:
+        final highlightedHtml = _highlightHtml(content);
         return SingleChildScrollView(
           controller: scrollController,
           physics: const BouncingScrollPhysics(),
@@ -178,7 +190,39 @@ class ReaderBody extends StatelessWidget {
             bottomInset + 24.0,
           ),
           child: Html(
-            data: content,
+            data: highlightedHtml,
+            extensions: [
+              TagExtension(
+                tagsToExtend: {'mark'},
+                builder: (extensionContext) {
+                  final isActive = extensionContext.classes.contains('search-match-active');
+                  final text = extensionContext.element?.text ?? '';
+                  final widget = RichText(
+                    text: TextSpan(
+                      text: text,
+                      style: TextStyle(
+                        backgroundColor: isActive ? readerTheme.accentColor : Colors.yellow,
+                        color: isActive ? readerTheme.backgroundColor : Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: preferences.fontSize,
+                        fontFamily: preferences.fontFamily,
+                      ),
+                    ),
+                  );
+
+                  if (isActive) {
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(key: activeMatchKey, width: 0, height: 0),
+                        widget,
+                      ],
+                    );
+                  }
+                  return widget;
+                },
+              ),
+            ],
             style: {
               'body': Style(
                 fontFamily: preferences.fontFamily,
@@ -232,6 +276,16 @@ class ReaderBody extends StatelessWidget {
                 width: Width(100, Unit.percent),
                 margin: Margins.symmetric(vertical: 24),
               ),
+              'mark': Style(
+                backgroundColor: Colors.yellow,
+                color: Colors.black,
+                fontWeight: FontWeight.w600,
+              ),
+              '.search-match-active': Style(
+                backgroundColor: readerTheme.accentColor,
+                color: readerTheme.backgroundColor,
+                fontWeight: FontWeight.w600,
+              ),
             },
             onLinkTap: (url, _, _) {
               if (url != null) {
@@ -283,4 +337,256 @@ class ReaderBody extends StatelessWidget {
       ],
     );
   }
+
+  // ─── Search Highlighting Helpers ──────────────────────────────────
+
+  List<InlineSpan> _buildTxtSpans(String content, TextStyle defaultStyle) {
+    if (searchState.query.isEmpty || state.currentChapter?.index != searchState.currentMatch?.chapterIndex) {
+      return [TextSpan(text: content, style: defaultStyle)];
+    }
+
+    final lowerContent = content.toLowerCase();
+    final lowerQuery = searchState.query.toLowerCase();
+    final matches = <int>[];
+    int idx = 0;
+    while (true) {
+      idx = lowerContent.indexOf(lowerQuery, idx);
+      if (idx == -1) break;
+      matches.add(idx);
+      idx += lowerQuery.length;
+    }
+
+    if (matches.isEmpty) {
+      return [TextSpan(text: content, style: defaultStyle)];
+    }
+
+    final spans = <InlineSpan>[];
+    int currentPos = 0;
+    int matchIndexInChapter = 0;
+
+    // We need to know which global match index corresponds to this chapter's matches.
+    // Let's find the offset of this chapter's first match.
+    int globalMatchOffset = searchState.matches.indexWhere((m) => m.chapterIndex == state.currentChapter?.index);
+    if (globalMatchOffset == -1) globalMatchOffset = 0; // Fallback
+
+    for (final matchIdx in matches) {
+      if (matchIdx > currentPos) {
+        spans.add(TextSpan(text: content.substring(currentPos, matchIdx), style: defaultStyle));
+      }
+      
+      final isCurrent = (globalMatchOffset + matchIndexInChapter) == searchState.currentMatchIndex;
+      
+      if (isCurrent) {
+        spans.add(WidgetSpan(
+          child: SizedBox(key: activeMatchKey, width: 0, height: 0),
+        ));
+      }
+
+      spans.add(TextSpan(
+        text: content.substring(matchIdx, matchIdx + searchState.query.length),
+        style: defaultStyle.copyWith(
+          backgroundColor: isCurrent ? readerTheme.accentColor : Colors.yellow,
+          color: isCurrent ? readerTheme.backgroundColor : Colors.black,
+          fontWeight: FontWeight.w600,
+        ),
+      ));
+      
+      currentPos = matchIdx + searchState.query.length;
+      matchIndexInChapter++;
+    }
+
+    if (currentPos < content.length) {
+      spans.add(TextSpan(text: content.substring(currentPos), style: defaultStyle));
+    }
+
+    return spans;
+  }
+
+  String _highlightHtml(String htmlString) {
+    if (searchState.query.isEmpty || state.currentChapter?.index != searchState.currentMatch?.chapterIndex) {
+      return htmlString;
+    }
+
+    try {
+      final doc = html_parser.parseFragment(htmlString);
+      final lowerQuery = searchState.query.toLowerCase();
+      
+      int globalMatchOffset = searchState.matches.indexWhere((m) => m.chapterIndex == state.currentChapter?.index);
+      if (globalMatchOffset == -1) globalMatchOffset = 0;
+      
+      int matchIndexInChapter = 0;
+
+      void traverse(dom.Node node) {
+        if (node.nodeType == dom.Node.TEXT_NODE) {
+          final text = node.text;
+          if (text != null && text.toLowerCase().contains(lowerQuery)) {
+            final parent = node.parentNode;
+            if (parent != null && parent is dom.Element && parent.localName != 'mark') {
+              final lowerText = text.toLowerCase();
+              final parts = <dom.Node>[];
+              int currentPos = 0;
+              int idx = 0;
+
+              while (true) {
+                idx = lowerText.indexOf(lowerQuery, idx);
+                if (idx == -1) break;
+
+                if (idx > currentPos) {
+                  parts.add(dom.Text(text.substring(currentPos, idx)));
+                }
+
+                final isCurrent = (globalMatchOffset + matchIndexInChapter) == searchState.currentMatchIndex;
+                final markNode = dom.Element.tag('mark');
+                if (isCurrent) {
+                  markNode.classes.add('search-match-active');
+                  // We can't inject a flutter GlobalKey into a pure HTML string here. 
+                  // But we can add an ID to the active mark!
+                  markNode.attributes['id'] = 'active-search-match';
+                }
+                markNode.text = text.substring(idx, idx + searchState.query.length);
+                parts.add(markNode);
+
+                currentPos = idx + searchState.query.length;
+                idx += searchState.query.length;
+                matchIndexInChapter++;
+              }
+
+              if (currentPos < text.length) {
+                parts.add(dom.Text(text.substring(currentPos)));
+              }
+
+              // Replace the original text node with the new parts
+              final nodeIndex = parent.nodes.indexOf(node);
+              if (nodeIndex != -1) {
+                parent.nodes.removeAt(nodeIndex);
+                parent.nodes.insertAll(nodeIndex, parts);
+              }
+            }
+          }
+        } else if (node.nodeType == dom.Node.ELEMENT_NODE) {
+          final element = node as dom.Element;
+          // Don't traverse inside already injected mark tags or scripts
+          if (element.localName != 'mark' && element.localName != 'script' && element.localName != 'style') {
+            for (var child in element.nodes.toList()) {
+              traverse(child);
+            }
+          }
+        }
+      }
+
+      for (var child in doc.nodes.toList()) {
+        traverse(child);
+      }
+      return doc.outerHtml;
+    } catch (e) {
+      debugPrint('Failed to highlight HTML: $e');
+      return htmlString;
+    }
+  }
+
+  String _highlightMarkdown(String markdownString) {
+    if (searchState.query.isEmpty || state.currentChapter?.index != searchState.currentMatch?.chapterIndex) {
+      return markdownString;
+    }
+    // Very basic fallback since flutter_markdown doesn't support complex text node splitting easily.
+    // Actually, we can use the same regex replacement logic and wrap with `<mark>` 
+    // because flutter_markdown supports inline HTML if extensionSet allows it!
+    // But standard MarkdownBody drops unknown HTML tags like <mark>.
+    // So we use custom ==highlight== syntax.
+    final lowerQuery = searchState.query.toLowerCase();
+    int idx = 0;
+    int globalMatchOffset = searchState.matches.indexWhere((m) => m.chapterIndex == state.currentChapter?.index);
+    if (globalMatchOffset == -1) globalMatchOffset = 0;
+    int matchIndexInChapter = 0;
+
+    final buffer = StringBuffer();
+    int currentPos = 0;
+    final lowerContent = markdownString.toLowerCase();
+
+    while (true) {
+      idx = lowerContent.indexOf(lowerQuery, idx);
+      if (idx == -1) break;
+
+      if (idx > currentPos) {
+        buffer.write(markdownString.substring(currentPos, idx));
+      }
+
+      final isCurrent = (globalMatchOffset + matchIndexInChapter) == searchState.currentMatchIndex;
+      final matchText = markdownString.substring(idx, idx + searchState.query.length);
+      
+      final tag = isCurrent ? '[mark:active]' : '[mark]';
+      buffer.write('$tag$matchText[/mark]');
+
+      currentPos = idx + searchState.query.length;
+      idx += searchState.query.length;
+      matchIndexInChapter++;
+    }
+
+    if (currentPos < markdownString.length) {
+      buffer.write(markdownString.substring(currentPos));
+    }
+
+    return buffer.toString();
+  }
+
+  md.ExtensionSet _createMarkdownExtensionSet() {
+    return md.ExtensionSet(
+      md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+      [
+        ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes,
+        _MarkInlineSyntax(),
+      ],
+    );
+  }
 }
+
+class _MarkInlineSyntax extends md.InlineSyntax {
+  _MarkInlineSyntax() : super(r'\[mark(:active)?\](.*?)\[/mark\]');
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    final isActive = match[1] == ':active';
+    final text = match[2]!;
+    final el = md.Element.text('mark', text);
+    if (isActive) el.attributes['class'] = 'active';
+    parser.addNode(el);
+    return true;
+  }
+}
+
+class _MarkElementBuilder extends MarkdownElementBuilder {
+  final ReaderThemeConfig theme;
+  final int currentIndex;
+  final GlobalKey activeMatchKey;
+
+  _MarkElementBuilder(this.theme, this.currentIndex, this.activeMatchKey);
+
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    final isActive = element.attributes['class'] == 'active';
+    final textWidget = RichText(
+      text: TextSpan(
+        text: element.textContent,
+        style: preferredStyle?.copyWith(
+          backgroundColor: isActive ? theme.accentColor : Colors.yellow,
+          color: isActive ? theme.backgroundColor : Colors.black,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+
+    if (isActive) {
+      // Wrap in a widget with the global key so we can scroll to it
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(key: activeMatchKey, width: 0, height: 0),
+          textWidget,
+        ],
+      );
+    }
+
+    return textWidget;
+  }
+}
+

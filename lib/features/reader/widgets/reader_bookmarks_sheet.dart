@@ -6,8 +6,13 @@ import 'package:porbi/features/bookmarks/providers/bookmarks_provider.dart';
 
 class ReaderBookmarksSheet extends ConsumerWidget {
   final ReaderThemeConfig readerTheme;
+  final Function(int chapterIndex, int? scrollOffset) onBookmarkTap;
 
-  const ReaderBookmarksSheet({super.key, required this.readerTheme});
+  const ReaderBookmarksSheet({
+    super.key,
+    required this.readerTheme,
+    required this.onBookmarkTap,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -115,7 +120,7 @@ class ReaderBookmarksSheet extends ConsumerWidget {
                           },
                         ),
                         onTap: () {
-                          ref.read(readerProvider.notifier).goToChapter(bookmark.position);
+                          onBookmarkTap(bookmark.position, bookmark.scrollOffset);
                           Navigator.pop(context);
                         },
                       );
