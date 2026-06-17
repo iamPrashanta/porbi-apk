@@ -51,7 +51,7 @@ dependencies:
   collection: any
 
   # Fonts
-  google_fonts: any
+  # google_fonts removed in favor of bundled fonts
 
   # Syntax Highlighting
   flutter_highlight: any
@@ -99,3 +99,14 @@ flutter:
 
   assets:
     - assets/logo/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
+    - family: Source Serif 4
+      fonts:
+        - asset: assets/fonts/SourceSerif4.ttf
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto.ttf

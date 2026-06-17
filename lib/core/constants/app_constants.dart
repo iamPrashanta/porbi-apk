@@ -20,14 +20,10 @@ class AppConstants {
   ];
 
   static const List<String> availableFonts = [
-    'Literata',
-    'Roboto',
-    'Open Sans',
-    'Merriweather',
-    'Lora',
-    'Source Serif Pro',
-    'Noto Sans',
+    'System',
     'Inter',
+    'Source Serif 4',
+    'Roboto',
   ];
 
   static const double minFontSize = 10.0;

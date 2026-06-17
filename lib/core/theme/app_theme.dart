@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   AppColors._();
@@ -47,18 +46,19 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.lightBackground,
-      textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
-      appBarTheme: AppBarTheme(
+      textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Inter'),
+      appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0.5,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: TextStyle(
+          fontFamily: 'Inter',
           fontSize: 22,
           fontWeight: FontWeight.w700,
           color: AppColors.lightOnSurface,
         ),
-        iconTheme: const IconThemeData(color: AppColors.lightOnSurface),
+        iconTheme: IconThemeData(color: AppColors.lightOnSurface),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -78,13 +78,15 @@ class AppTheme {
         indicatorColor: AppColors.primaryPurple.withValues(alpha: 0.12),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.inter(
+            return const TextStyle(
+              fontFamily: 'Inter',
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.primaryPurple,
             );
           }
-          return GoogleFonts.inter(
+          return TextStyle(
+            fontFamily: 'Inter',
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: AppColors.lightOnSurface.withValues(alpha: 0.6),
@@ -127,18 +129,19 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.darkBackground,
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-      appBarTheme: AppBarTheme(
+      textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+      appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0.5,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: TextStyle(
+          fontFamily: 'Inter',
           fontSize: 22,
           fontWeight: FontWeight.w700,
           color: AppColors.darkOnSurface,
         ),
-        iconTheme: const IconThemeData(color: AppColors.darkOnSurface),
+        iconTheme: IconThemeData(color: AppColors.darkOnSurface),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -158,13 +161,15 @@ class AppTheme {
         indicatorColor: AppColors.primaryPurple.withValues(alpha: 0.2),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.inter(
+            return const TextStyle(
+              fontFamily: 'Inter',
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.accentTeal,
             );
           }
-          return GoogleFonts.inter(
+          return TextStyle(
+            fontFamily: 'Inter',
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: AppColors.darkOnSurface.withValues(alpha: 0.6),

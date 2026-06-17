@@ -52,28 +52,43 @@ class ReaderPreferencesNotifier extends StateNotifier<ReaderPreferencesState> {
     );
   }
 
-  Future<void> updateFontSize(double fontSize) async {
+  void updateFontSize(double fontSize) {
     if (state.preferences == null) return;
     final newPrefs = state.preferences!.copyWith(fontSize: fontSize);
     state = state.copyWith(preferences: newPrefs);
+  }
+
+  Future<void> saveFontSize(double fontSize) async {
+    if (state.preferences == null) return;
+    updateFontSize(fontSize);
     await _repository.savePreferences(
       ReaderPreferencesCompanion(fontSize: Value(fontSize)),
     );
   }
 
-  Future<void> updateLineHeight(double lineHeight) async {
+  void updateLineHeight(double lineHeight) {
     if (state.preferences == null) return;
     final newPrefs = state.preferences!.copyWith(lineHeight: lineHeight);
     state = state.copyWith(preferences: newPrefs);
+  }
+
+  Future<void> saveLineHeight(double lineHeight) async {
+    if (state.preferences == null) return;
+    updateLineHeight(lineHeight);
     await _repository.savePreferences(
       ReaderPreferencesCompanion(lineHeight: Value(lineHeight)),
     );
   }
 
-  Future<void> updateMargin(double margin) async {
+  void updateMargin(double margin) {
     if (state.preferences == null) return;
     final newPrefs = state.preferences!.copyWith(horizontalMargin: margin);
     state = state.copyWith(preferences: newPrefs);
+  }
+
+  Future<void> saveMargin(double margin) async {
+    if (state.preferences == null) return;
+    updateMargin(margin);
     await _repository.savePreferences(
       ReaderPreferencesCompanion(horizontalMargin: Value(margin)),
     );

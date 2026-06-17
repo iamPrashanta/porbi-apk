@@ -18,6 +18,8 @@ import 'package:porbi/features/reader/widgets/reader_body.dart';
 import 'package:porbi/features/reader/widgets/reader_bottom_dock.dart';
 import 'package:porbi/features/reader/widgets/reader_progress_sheet.dart';
 import 'package:porbi/features/reader/widgets/reader_settings_sheet.dart';
+import 'package:porbi/features/reader/widgets/reader_bookmarks_sheet.dart';
+import 'package:porbi/features/reader/widgets/reader_notes_sheet.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   final String bookId;
@@ -673,8 +675,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   void _showBookmarks(ReaderThemeConfig readerTheme) {
-    final state = ref.read(readerProvider);
-    if (state.book == null) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -682,109 +682,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Consumer(
-        builder: (context, cRef, _) {
-          final bookmarks = cRef.watch(bookBookmarksProvider(state.book!.id));
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: readerTheme.textColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'Bookmarks',
-                  style: TextStyle(
-                    color: readerTheme.textColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              bookmarks.when(
-                data: (items) {
-                  if (items.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Text(
-                        'No bookmarks yet',
-                        style: TextStyle(color: readerTheme.secondaryTextColor),
-                      ),
-                    );
-                  }
-                  return Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final bookmark = items[index];
-                        return ListTile(
-                          leading: Icon(
-                            Icons.bookmark_rounded,
-                            color: readerTheme.accentColor,
-                          ),
-                          title: Text(
-                            bookmark.title,
-                            style: TextStyle(color: readerTheme.textColor),
-                          ),
-                          subtitle: bookmark.excerpt != null
-                              ? Text(
-                                  bookmark.excerpt!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: readerTheme.secondaryTextColor,
-                                    fontSize: 12,
-                                  ),
-                                )
-                              : null,
-                          trailing: IconButton(
-                            icon: Icon(
-                              Icons.delete_outline_rounded,
-                              color: readerTheme.secondaryTextColor,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              cRef.read(bookmarksNotifierProvider.notifier).deleteBookmark(bookmark.id);
-                            },
-                          ),
-                          onTap: () {
-                            cRef.read(readerProvider.notifier).goToChapter(bookmark.position);
-                            Navigator.pop(context);
-                          },
-                        );
-                      },
-                    ),
-                  );
-                },
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
-                ),
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Text('Error: $e'),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          );
-        },
-      ),
+      builder: (ctx) => ReaderBookmarksSheet(readerTheme: readerTheme),
     );
   }
 
   void _showNotes(ReaderThemeConfig readerTheme) {
-    final state = ref.read(readerProvider);
-    if (state.book == null) return;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -792,100 +694,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Consumer(
-        builder: (context, cRef, _) {
-          final notes = cRef.watch(bookNotesProvider(state.book!.id));
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: readerTheme.textColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'Notes',
-                  style: TextStyle(
-                    color: readerTheme.textColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              notes.when(
-                data: (items) {
-                  if (items.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Text(
-                        'No notes yet.\nSelect text to add a note.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: readerTheme.secondaryTextColor),
-                      ),
-                    );
-                  }
-                  return Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final note = items[index];
-                        return ListTile(
-                          leading: Icon(
-                            Icons.sticky_note_2_rounded,
-                            color: readerTheme.accentColor,
-                          ),
-                          title: Text(
-                            note.noteContent,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: readerTheme.textColor),
-                          ),
-                          subtitle: Text(
-                            '"${note.selectedText}"',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: readerTheme.secondaryTextColor,
-                              fontSize: 12,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                          trailing: IconButton(
-                            icon: Icon(
-                              Icons.delete_outline_rounded,
-                              color: readerTheme.secondaryTextColor,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              cRef.read(notesNotifierProvider.notifier).deleteNote(note.id);
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
-                ),
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Text('Error: $e'),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          );
-        },
-      ),
+      builder: (ctx) => ReaderNotesSheet(readerTheme: readerTheme),
     );
   }
 }

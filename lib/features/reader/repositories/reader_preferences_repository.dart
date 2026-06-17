@@ -35,15 +35,21 @@ class ReaderPreferencesRepository {
     return query.watchSingle();
   }
 
-  /// Save partial or complete global preferences
   Future<void> savePreferences(ReaderPreferencesCompanion companion) async {
-    await _db.into(_db.readerPreferences).insert(
-          companion.copyWith(
-            id: const Value('global'),
-            updatedAt: Value(DateTime.now()),
-          ),
-          mode: InsertMode.insertOrReplace,
-        );
+    final updatedRows = await (_db.update(_db.readerPreferences)..where((t) => t.id.equals('global'))).write(
+      companion.copyWith(updatedAt: Value(DateTime.now())),
+    );
+
+    // Fallback if the row didn't exist for some reason
+    if (updatedRows == 0) {
+      await _db.into(_db.readerPreferences).insert(
+        companion.copyWith(
+          id: const Value('global'),
+          updatedAt: Value(DateTime.now()),
+        ),
+        mode: InsertMode.insertOrIgnore,
+      );
+    }
   }
 
   /// Export current preferences as JSON map

@@ -58,12 +58,16 @@ class _ReaderProgressSheetState extends ConsumerState<ReaderProgressSheet> {
   Widget build(BuildContext context) {
     final state = ref.watch(readerProvider);
     final theme = widget.readerTheme;
+    final minHeight = MediaQuery.sizeOf(context).height * 0.45;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    return SafeArea(
+      bottom: true,
+      child: Container(
+        constraints: BoxConstraints(minHeight: minHeight),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           Container(
             width: 36,
             height: 4,
@@ -122,9 +126,34 @@ class _ReaderProgressSheetState extends ConsumerState<ReaderProgressSheet> {
               ],
             )
           else
-            Text(
-              'Progress not available.',
-              style: TextStyle(color: theme.secondaryTextColor),
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.menu_book_rounded,
+                      size: 48,
+                      color: theme.textColor.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No Progress',
+                      style: TextStyle(
+                        color: theme.textColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Progress is not available for this document.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: theme.secondaryTextColor),
+                    ),
+                  ],
+                ),
+              ),
             ),
         ],
       ),

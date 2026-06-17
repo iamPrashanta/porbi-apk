@@ -24,11 +24,16 @@ class ReaderSettingsSheet extends ConsumerWidget {
 
     final prefs = state.preferences!;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    final minHeight = MediaQuery.sizeOf(context).height * 0.45;
+
+    return SafeArea(
+      bottom: true,
+      child: Container(
+        constraints: BoxConstraints(minHeight: minHeight),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           Container(
             width: 36,
             height: 4,
@@ -58,6 +63,7 @@ class ReaderSettingsSheet extends ConsumerWidget {
               min: AppConstants.minFontSize,
               max: AppConstants.maxFontSize,
               onChanged: notifier.updateFontSize,
+              onChangeEnd: notifier.saveFontSize,
               activeColor: readerTheme.accentColor,
             ),
           ),
@@ -72,6 +78,7 @@ class ReaderSettingsSheet extends ConsumerWidget {
               min: AppConstants.minLineHeight,
               max: AppConstants.maxLineHeight,
               onChanged: notifier.updateLineHeight,
+              onChangeEnd: notifier.saveLineHeight,
               activeColor: readerTheme.accentColor,
             ),
           ),
@@ -86,6 +93,7 @@ class ReaderSettingsSheet extends ConsumerWidget {
               min: AppConstants.minMargin,
               max: AppConstants.maxMargin,
               onChanged: notifier.updateMargin,
+              onChangeEnd: notifier.saveMargin,
               activeColor: readerTheme.accentColor,
             ),
           ),
