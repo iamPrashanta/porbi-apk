@@ -170,9 +170,7 @@ final readerControllerProvider =
     StateNotifierProvider.autoDispose<ReaderController, ReaderState>((ref) {
       return ReaderController(
         ref.watch(databaseProvider),
-        ref.watch(FileService.new as dynamic) is FileService
-            ? FileService()
-            : FileService(),
+        ref.watch(fileServiceProvider),
       );
     });
 

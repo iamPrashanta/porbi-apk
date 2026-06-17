@@ -191,16 +191,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     // --- DEBUG LOGGING REQUESTED BY USER ---
     final chapterCount = state.chapters.length;
-    final chapterContentLength = state.currentChapter?.content.length ?? 0;
-    debugPrint('--- PIPELINE AUDIT ---');
-    debugPrint('Building Reader Route: true');
-    debugPrint('Parsed Chapter Count: $chapterCount');
-    debugPrint('Current Theme: ${readerTheme.name}');
-    debugPrint('Text Color: ${readerTheme.textColor}');
-    debugPrint('Background Color: ${readerTheme.backgroundColor}');
-    debugPrint('Reader State: isLoading=${state.isLoading}, error=${state.error}, currentChapterIndex=${state.currentChapterIndex}');
-    debugPrint('Current Chapter Content Length: $chapterContentLength');
-    debugPrint('------------------------');
+    final content = state.currentChapter?.content ?? '';
+    debugPrint('Reader loaded');
+    debugPrint('Chapter count: $chapterCount');
+    debugPrint('Content length: ${content.length}');
 
     return PopScope(
       canPop: true,
@@ -266,7 +260,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     children: [
                       const Text('PIPELINE AUDIT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       Text('Chapters: $chapterCount', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                      Text('Content Length: $chapterContentLength', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      Text('Content Length: ${content.length}', style: const TextStyle(color: Colors.white, fontSize: 12)),
                       Text('Theme: ${readerTheme.name}', style: const TextStyle(color: Colors.white, fontSize: 12)),
                       Text('Text: ${readerTheme.textColor}', style: const TextStyle(color: Colors.white, fontSize: 12)),
                       Text('Bg: ${readerTheme.backgroundColor}', style: const TextStyle(color: Colors.white, fontSize: 12)),

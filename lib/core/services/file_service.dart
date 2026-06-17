@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -9,6 +10,8 @@ import 'package:porbi/core/constants/supported_formats.dart';
 import 'package:porbi/models/book.dart' as models;
 import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
+
+final fileServiceProvider = Provider<FileService>((ref) => FileService());
 
 class FileService {
   static const _uuid = Uuid();

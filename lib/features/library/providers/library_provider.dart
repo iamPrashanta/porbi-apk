@@ -7,8 +7,6 @@ import 'package:porbi/models/book.dart';
 import 'package:porbi/providers/database_provider.dart';
 import 'package:porbi/features/reader/services/epub_parser.dart';
 
-final fileServiceProvider = Provider<FileService>((ref) => FileService());
-
 final libraryBooksProvider = StreamProvider<List<Book>>((ref) {
   final db = ref.watch(databaseProvider);
   return db.watchAllBooks();
