@@ -13,10 +13,17 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>(
   debugLabel: 'shell',
 );
-
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
+  redirect: (context, state) {
+    if (state.uri.scheme == 'content' || state.uri.scheme == 'file') {
+      // Prevent GoRouter from navigating to incoming deep links.
+      // IntentService will handle these URIs natively.
+      return '/';
+    }
+    return null;
+  },
   routes: [
     ShellRoute(
       navigatorKey: _shellNavigatorKey,

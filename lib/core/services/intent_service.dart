@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:porbi/core/router/app_router.dart';
 import 'package:porbi/features/library/providers/library_provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
@@ -57,13 +59,27 @@ class IntentService {
   Future<void> _handleUri(Uri uri) async {
     // A file:// or content:// URI
     final path = uri.toString();
-    await _libraryNotifier.importFromUri(path);
+    debugPrint('Handling deep link intent URI: $path');
+    final book = await _libraryNotifier.importFromUri(path);
+    if (book != null) {
+      debugPrint('Created book id: ${book.id}');
+      appRouter.push('/reader/${book.id}');
+    } else {
+      debugPrint('Failed to create book from URI: $path');
+    }
   }
 
   Future<void> _handleSharedFiles(List<SharedMediaFile> files) async {
     if (files.isEmpty) return;
     for (final file in files) {
-      await _libraryNotifier.importFromUri(file.path);
+      debugPrint('Handling shared file intent URI: ${file.path}');
+      final book = await _libraryNotifier.importFromUri(file.path);
+      if (book != null) {
+        debugPrint('Created book id: ${book.id}');
+        appRouter.push('/reader/${book.id}');
+      } else {
+        debugPrint('Failed to create book from shared file: ${file.path}');
+      }
     }
   }
 }

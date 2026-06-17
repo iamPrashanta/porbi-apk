@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
@@ -10,6 +12,7 @@ import 'package:uuid/uuid.dart';
 
 class FileService {
   static const _uuid = Uuid();
+  static const _channel = MethodChannel('com.porbi.apk/content');
 
   /// Pick a file using the system file picker.
   Future<File?> pickFile() async {
@@ -73,12 +76,21 @@ class FileService {
   /// Import a file from a content URI (Android intent).
   Future<File?> importFromUri(String uri) async {
     try {
-      final file = File(uri);
-      if (await file.exists()) {
-        return file;
+      debugPrint('Incoming URI: $uri');
+      if (uri.startsWith('content://')) {
+        final result = await _channel.invokeMethod<String>('copyContentUri', {'uri': uri});
+        if (result != null) {
+          debugPrint('Copied file path: $result');
+          return File(result);
+        }
+      } else {
+        final file = File(uri);
+        if (await file.exists()) {
+          return file;
+        }
       }
-    } catch (_) {
-      // URI might not be a direct file path
+    } catch (e) {
+      debugPrint('Error handling URI: $e');
     }
     return null;
   }

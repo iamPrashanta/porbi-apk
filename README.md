@@ -505,16 +505,23 @@ Run the app:
 flutter run
 ```
 
-Build Release APK:
+Build Release APK (Fat APK):
 
 ```bash
 flutter build apk --release
 ```
 
-Build App Bundle:
+Build Smaller Optimized APKs (Split per Architecture):
 
 ```bash
-flutter build appbundle --release
+flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/app/outputs/symbols
+```
+> **Note:** This significantly reduces the APK size by generating separate APKs for each architecture (arm64, armeabi, etc.) instead of bundling them all together. It also obfuscates the Dart code.
+
+Build App Bundle (For Google Play):
+
+```bash
+flutter build appbundle --release --obfuscate --split-debug-info=build/app/outputs/symbols
 ```
 
 ---

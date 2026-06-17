@@ -18,8 +18,9 @@ dependencies:
   go_router: any
 
   # Storage
-  drift: any
-  sqlite3_flutter_libs: any
+  drift: ^2.21.0
+  sqlite3: ^2.4.6
+  sqlite3_flutter_libs: ^0.5.0
 
   # Settings
   shared_preferences: any
