@@ -3,7 +3,7 @@ class AppConstants {
 
   static const String appName = 'Porbi';
   static const String appTagline = 'Read Anything, Anywhere';
-  static const String publisher = 'Cloud Grips Tech';
+
   static const String appVersion = '1.0.0';
 
   static const int defaultPageSize = 4000;

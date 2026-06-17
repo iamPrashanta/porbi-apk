@@ -46,6 +46,11 @@ class ReaderBody extends StatelessWidget {
 
     final content = chapter.content;
 
+    debugPrint(
+      'ReaderBody build '
+      'contentLength=${content.length}'
+    );
+
     // Use a polished line height
     final double polishedLineHeight = preferences.lineHeight.clamp(1.55, 1.75);
 

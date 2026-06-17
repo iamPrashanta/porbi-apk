@@ -79,6 +79,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(readerProvider);
     final prefsState = ref.watch(readerPreferencesProvider);
+
+    debugPrint(
+      'Reader build: '
+      'loading=${state.isLoading} '
+      'error=${state.error} '
+      'chapters=${state.chapters.length}'
+    );
     
     if (prefsState.isLoading || prefsState.preferences == null) {
       if (prefsState.error != null) {
@@ -182,6 +189,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final topInset = safeTop + appBarHeight;
     final bottomInset = safeBottom + dockHeight;
 
+    // --- DEBUG LOGGING REQUESTED BY USER ---
+    final chapterCount = state.chapters.length;
+    final chapterContentLength = state.currentChapter?.content.length ?? 0;
+    debugPrint('--- PIPELINE AUDIT ---');
+    debugPrint('Building Reader Route: true');
+    debugPrint('Parsed Chapter Count: $chapterCount');
+    debugPrint('Current Theme: ${readerTheme.name}');
+    debugPrint('Text Color: ${readerTheme.textColor}');
+    debugPrint('Background Color: ${readerTheme.backgroundColor}');
+    debugPrint('Reader State: isLoading=${state.isLoading}, error=${state.error}, currentChapterIndex=${state.currentChapterIndex}');
+    debugPrint('Current Chapter Content Length: $chapterContentLength');
+    debugPrint('------------------------');
+
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {
@@ -225,6 +245,32 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     bottomInset: bottomInset,
                     onAddBookmark: (text) => _addBookmark(text),
                     onAddNote: (text) => _addNote(text),
+                  ),
+                ),
+              ),
+
+              // ─── User Requested Debug Overlay ───
+              Positioned(
+                top: topInset + 20,
+                left: 20,
+                right: 20,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('PIPELINE AUDIT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      Text('Chapters: $chapterCount', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      Text('Content Length: $chapterContentLength', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      Text('Theme: ${readerTheme.name}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      Text('Text: ${readerTheme.textColor}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      Text('Bg: ${readerTheme.backgroundColor}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                    ],
                   ),
                 ),
               ),

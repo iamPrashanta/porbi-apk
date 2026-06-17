@@ -60,11 +60,7 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(AppConstants.appName),
             subtitle: Text('Version ${AppConstants.appVersion}'),
           ),
-          const ListTile(
-            leading: Icon(Icons.business_rounded),
-            title: Text('Publisher'),
-            subtitle: Text(AppConstants.publisher),
-          ),
+
           const SizedBox(height: 40),
         ],
       ),
