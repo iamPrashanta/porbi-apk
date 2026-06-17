@@ -13,7 +13,11 @@ class ReaderPreferencesNotifier extends StateNotifier<ReaderPreferencesState> {
     _init();
   }
 
-  void _init() {
+  void _init() async {
+    try {
+      await _repository.getPreferences();
+    } catch (_) {}
+
     _subscription = _repository.watchPreferences().listen(
       (preferences) {
         state = state.copyWith(

@@ -81,6 +81,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final prefsState = ref.watch(readerPreferencesProvider);
     
     if (prefsState.isLoading || prefsState.preferences == null) {
+      if (prefsState.error != null) {
+        return Scaffold(
+          body: Center(
+            child: Text('Failed to load preferences: ${prefsState.error}', style: const TextStyle(color: Colors.red)),
+          ),
+        );
+      }
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
