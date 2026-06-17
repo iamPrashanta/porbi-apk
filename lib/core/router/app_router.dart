@@ -63,7 +63,13 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) {
         final bookId = state.pathParameters['bookId']!;
-        return ReaderScreen(bookId: bookId);
+        final filePath = state.uri.queryParameters['filePath'];
+        final originalUri = state.uri.queryParameters['originalUri'];
+        return ReaderScreen(
+          bookId: bookId,
+          filePath: filePath,
+          originalUri: originalUri,
+        );
       },
     ),
     GoRoute(

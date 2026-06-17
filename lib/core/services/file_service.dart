@@ -183,6 +183,35 @@ class FileService {
     return null;
   }
 
+  /// Pick a directory using the native picker (SAF).
+  Future<String?> pickDirectory() async {
+    try {
+      if (Platform.isAndroid) {
+        return await _channel.invokeMethod<String>('pickDirectory');
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error picking directory: $e');
+      return null;
+    }
+  }
+
+  /// List contents of a directory using SAF.
+  Future<List<Map<String, dynamic>>> listDirectory(String uriString) async {
+    try {
+      if (Platform.isAndroid) {
+        final list = await _channel.invokeMethod<List<dynamic>>('listDirectory', {'uri': uriString});
+        if (list != null) {
+          return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+        }
+      }
+      return const [];
+    } catch (e) {
+      debugPrint('Error listing directory via SAF: $e');
+      rethrow;
+    }
+  }
+
   /// Read file content as string.
   Future<String> readFileContent(String filePath) async {
     final file = File(filePath);

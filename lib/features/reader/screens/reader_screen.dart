@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +13,7 @@ import 'package:porbi/features/reader/providers/notes_provider.dart';
 import 'package:porbi/features/reader/providers/reader_provider.dart';
 import 'package:porbi/features/reader/providers/reader_preferences_provider.dart';
 import 'package:porbi/models/reader_settings.dart';
+import 'package:porbi/models/book.dart';
 import 'package:porbi/features/reader/services/reader_scroll_service.dart';
 import 'package:porbi/features/reader/widgets/reader_app_bar.dart';
 import 'package:porbi/features/reader/widgets/reader_body.dart';
@@ -25,8 +27,15 @@ import 'package:porbi/features/reader/widgets/reader_search_overlay.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   final String bookId;
+  final String? filePath;
+  final String? originalUri;
 
-  const ReaderScreen({super.key, required this.bookId});
+  const ReaderScreen({
+    super.key,
+    required this.bookId,
+    this.filePath,
+    this.originalUri,
+  });
 
   @override
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
@@ -36,16 +45,35 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   final ReaderScrollService _scrollService = ReaderScrollService();
   final GlobalKey _activeMatchKey = GlobalKey();
   Timer? _scrollDebounce;
+  Timer? _autoHideTimer;
 
   @override
   void initState() {
     super.initState();
+    debugPrint('ReaderScreen filePath=${widget.filePath}');
+    debugPrint('ReaderScreen originalUri=${widget.originalUri}');
+    debugPrint('ReaderScreen bookId=${widget.bookId}');
     Future.microtask(() {
-      ref.read(readerProvider.notifier).loadBook(widget.bookId);
+      if (widget.filePath != null) {
+        ref.read(readerProvider.notifier).loadFromFile(
+              widget.filePath!,
+              widget.bookId,
+              originalUri: widget.originalUri,
+            );
+      } else {
+        ref.read(readerProvider.notifier).loadBook(widget.bookId);
+      }
     });
 
     _scrollService.addVisibilityListener(() {
       setState(() {});
+      if (_scrollService.isVisible) {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+        _startAutoHideTimer();
+      } else {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        _autoHideTimer?.cancel();
+      }
     });
 
     _scrollService.scrollController.addListener(() {
@@ -65,17 +93,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   void dispose() {
     _scrollDebounce?.cancel();
+    _autoHideTimer?.cancel();
     _scrollService.dispose();
     super.dispose();
   }
 
+  void _startAutoHideTimer() {
+    _autoHideTimer?.cancel();
+    _autoHideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted && _scrollService.isVisible) {
+        _scrollService.setVisibility(false);
+      }
+    });
+  }
+
   void _handleSingleTap() {
     _scrollService.toggleVisibility();
-    if (!_scrollService.isVisible) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    } else {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    }
   }
 
   void _handleDoubleTap() {
@@ -103,6 +136,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final state = ref.watch(readerProvider);
     final prefsState = ref.watch(readerPreferencesProvider);
     final searchState = ref.watch(searchProvider);
+
+    debugPrint('=== READER SCREEN BUILD AUDIT ===');
+    debugPrint('widget.bookId: ${widget.bookId}');
+    debugPrint('widget.filePath: ${widget.filePath}');
+    debugPrint('state.isLoading: ${state.isLoading}');
+    debugPrint('state.error: ${state.error}');
+    debugPrint('state.book: ${state.book?.id} (${state.book?.title})');
+    debugPrint('state.chapters: ${state.chapters.length}');
+    debugPrint('state.currentChapterIndex: ${state.currentChapterIndex}');
+    debugPrint('state.currentChapter: ${state.currentChapter?.title}');
+    debugPrint('=================================');
 
     ref.listen<SearchState>(searchProvider, (previous, next) {
       if (previous?.currentMatchIndex != next.currentMatchIndex && next.currentMatchIndex != -1) {
@@ -217,9 +261,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     // We reserve generous space for our UI components so content never underlaps
     const appBarHeight = 64.0;
     const dockHeight = 80.0;
+    const chapterBarHeight = 56.0;
     
     final topInset = safeTop + appBarHeight;
-    final bottomInset = safeBottom + dockHeight;
+    final bottomInset = safeBottom + dockHeight + chapterBarHeight;
 
     return PopScope(
       canPop: true,
@@ -258,18 +303,33 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     },
                   ),
                 },
-                child: SizedBox.expand(
-                  child: ReaderBody(
-                    state: state,
-                    searchState: searchState,
-                    activeMatchKey: _activeMatchKey,
-                    preferences: prefs,
-                    readerTheme: readerTheme,
-                    scrollController: _scrollService.scrollController,
-                    topInset: topInset,
-                    bottomInset: bottomInset,
-                    onAddBookmark: (text) => _addBookmark(text),
-                    onAddNote: (text) => _addNote(text),
+                child: GestureDetector(
+                  onHorizontalDragEnd: (details) {
+                    if (state.book?.fileType == FileType.epub && details.primaryVelocity != null) {
+                      if (details.primaryVelocity! < -300) {
+                        if (state.currentChapterIndex < state.chapters.length - 1) {
+                          ref.read(readerProvider.notifier).goToChapter(state.currentChapterIndex + 1);
+                        }
+                      } else if (details.primaryVelocity! > 300) {
+                        if (state.currentChapterIndex > 0) {
+                          ref.read(readerProvider.notifier).goToChapter(state.currentChapterIndex - 1);
+                        }
+                      }
+                    }
+                  },
+                  child: SizedBox.expand(
+                    child: ReaderBody(
+                      state: state,
+                      searchState: searchState,
+                      activeMatchKey: _activeMatchKey,
+                      preferences: prefs,
+                      readerTheme: readerTheme,
+                      scrollController: _scrollService.scrollController,
+                      topInset: topInset,
+                      bottomInset: bottomInset,
+                      onAddBookmark: (text) => _addBookmark(text),
+                      onAddNote: (text) => _addNote(text),
+                    ),
                   ),
                 ),
               ),
@@ -304,6 +364,85 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 onShowNotes: () => _showNotes(readerTheme),
                 onShowProgress: () => _showProgressSheet(readerTheme),
               ),
+
+              // ─── Chapter Navigation Bar ─────────────────────
+              if (state.chapters.isNotEmpty && state.currentChapter != null)
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  bottom: _scrollService.isVisible ? safeBottom + dockHeight : -100,
+                  left: 0,
+                  right: 0,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: _scrollService.isVisible ? 1.0 : 0.0,
+                    child: Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            height: 40,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: readerTheme.backgroundColor.withValues(alpha: 0.85),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: readerTheme.textColor.withValues(alpha: 0.1),
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.chevron_left_rounded),
+                                  color: readerTheme.textColor,
+                                  iconSize: 20,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: state.currentChapterIndex > 0
+                                      ? () => ref.read(readerProvider.notifier).goToChapter(state.currentChapterIndex - 1)
+                                      : null,
+                                ),
+                                const SizedBox(width: 16),
+                                GestureDetector(
+                                  onTap: () => _showChapterDrawer(readerTheme),
+                                  child: Text(
+                                    'Chapter ${state.currentChapterIndex + 1} of ${state.chapters.length}',
+                                    style: TextStyle(
+                                      color: readerTheme.textColor,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                IconButton(
+                                  icon: const Icon(Icons.chevron_right_rounded),
+                                  color: readerTheme.textColor,
+                                  iconSize: 20,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: state.currentChapterIndex < state.chapters.length - 1
+                                      ? () => ref.read(readerProvider.notifier).goToChapter(state.currentChapterIndex + 1)
+                                      : null,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
               // ─── Search Bar ────────────────────────────────────
               if (searchState.searchResultsVisible)

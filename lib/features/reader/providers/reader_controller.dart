@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:porbi/core/services/file_service.dart';
@@ -92,6 +93,145 @@ class ReaderController extends StateNotifier<ReaderState> {
         isLoading: false,
         error: 'Failed to load book: $e',
       );
+    }
+  }
+
+  Future<void> loadFromFile(String filePath, String bookId, {String? originalUri}) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      debugPrint('=== READER CONTROLLER AUDIT ===');
+      debugPrint('BOOK ID: $bookId');
+      debugPrint('FILE PATH: $filePath');
+      debugPrint('ORIGINAL URI: $originalUri');
+
+      final file = File(filePath);
+      debugPrint('Exists=${await file.exists()}');
+      debugPrint('Size=${await file.length()}');
+      
+      final fileExists = await file.exists();
+      debugPrint('FILE EXISTS: $fileExists');
+      if (!fileExists) {
+        throw Exception('File does not exist: $filePath');
+      }
+
+      final fileSize = await file.length();
+      debugPrint('FILE SIZE: $fileSize bytes');
+
+      final ext = filePath.split('.').last.toLowerCase();
+      final fileType = _getFileTypeFromExtension(ext);
+      debugPrint('RESOLVED FILE TYPE: $fileType');
+      
+      final contentHash = await _fileService.hashFile(file);
+      
+      var book = await _db.getBookById(bookId);
+      
+      String compositeHash = contentHash;
+      if (originalUri != null) {
+        compositeHash = '$originalUri|$contentHash';
+      } else if (book != null && book.fileHash != null) {
+        if (book.fileHash!.contains('|')) {
+          final existingUri = book.fileHash!.split('|').first;
+          compositeHash = '$existingUri|$contentHash';
+        } else if (book.fileHash!.startsWith('content://')) {
+          compositeHash = '${book.fileHash}|$contentHash';
+        }
+      }
+
+      if (book == null) {
+        book = Book(
+          id: bookId,
+          title: filePath.split('/').last.split('\\').last,
+          author: 'Unknown',
+          filePath: filePath,
+          fileType: fileType,
+          addedAt: DateTime.now(),
+          fileSize: fileSize,
+          fileHash: compositeHash,
+        );
+        await _db.insertBook(book);
+        debugPrint('INSERTED NEW TEMP BOOK IN DB WITH COMPOSITE HASH: $compositeHash');
+      } else {
+        book = book.copyWith(
+          filePath: filePath,
+          fileSize: fileSize,
+          lastOpened: DateTime.now(),
+          fileHash: compositeHash,
+        );
+        await _db.updateBook(book);
+        debugPrint('UPDATED TEMP BOOK IN DB WITH COMPOSITE HASH: $compositeHash');
+      }
+
+      List<Chapter> chapters;
+      if (fileType == FileType.epub) {
+        chapters = await _epubParser.parse(filePath);
+        if (_epubParser.coverPath != null && book.coverPath == null) {
+          book = book.copyWith(coverPath: _epubParser.coverPath);
+          await _db.updateBook(book);
+        }
+      } else if (fileType == FileType.txt) {
+        chapters = await TxtParser().parse(filePath);
+      } else if (fileType == FileType.markdown) {
+        chapters = await MarkdownParser(_fileService).parse(filePath);
+      } else if (fileType == FileType.html) {
+        chapters = await HtmlParser(_fileService).parse(filePath);
+      } else {
+        throw Exception('Unsupported file type');
+      }
+
+      debugPrint('Chapter count=${chapters.length}');
+      if (chapters.isNotEmpty) {
+        debugPrint('Content length=${chapters.first.content.length}');
+      }
+
+      debugPrint('CHAPTER COUNT: ${chapters.length}');
+      if (chapters.isNotEmpty) {
+        debugPrint('CONTENT LENGTH: ${chapters.first.content.length}');
+      }
+
+      if (chapters.isEmpty) {
+        chapters = const [Chapter(index: 0, title: 'Content', content: 'No content')];
+      }
+
+      final progress = await _db.getProgressForBook(bookId);
+      final savedChapterIndex = progress?.chapterIndex ?? 0;
+      final savedScrollOffset = progress?.scrollOffset ?? 0;
+      debugPrint('SAVED PROGRESS - CHAPTER: $savedChapterIndex, OFFSET: $savedScrollOffset');
+
+      book = book.copyWith(
+        lastOpened: DateTime.now(),
+        totalPages: chapters.length,
+      );
+      await _db.updateBook(book);
+
+      final currentChapter = chapters[savedChapterIndex.clamp(0, chapters.length - 1)];
+      debugPrint('isLoading=false');
+      debugPrint('chapters=${chapters.length}');
+      debugPrint('currentChapter=${currentChapter.content.length}');
+
+      state = state.copyWith(
+        book: book,
+        chapters: chapters,
+        currentChapterIndex: savedChapterIndex.clamp(0, chapters.length - 1),
+        scrollPosition: savedScrollOffset.toDouble(),
+        isLoading: false,
+      );
+      debugPrint('STATE UPDATED: isLoading=${state.isLoading}, error=${state.error}, book=${state.book?.title}');
+      debugPrint('================================');
+    } catch(e, st) {
+      debugPrint('[ReaderController] Error loading from file: $e\n$st');
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  FileType _getFileTypeFromExtension(String ext) {
+    switch (ext) {
+      case 'epub': return FileType.epub;
+      case 'md':
+      case 'markdown': return FileType.markdown;
+      case 'html':
+      case 'htm': return FileType.html;
+      case 'txt':
+      default: return FileType.txt;
     }
   }
 

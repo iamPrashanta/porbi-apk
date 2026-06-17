@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,9 @@ import 'package:porbi/core/utils/date_utils.dart';
 import 'package:porbi/features/home/providers/home_provider.dart';
 import 'package:porbi/features/library/providers/library_provider.dart';
 import 'package:porbi/models/book.dart';
+import 'package:porbi/core/services/file_service.dart';
+import 'package:porbi/providers/database_provider.dart';
+import 'package:porbi/core/utils/file_utils.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -72,11 +76,10 @@ class HomeScreen extends ConsumerWidget {
               );
             },
             loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
-            error: (_, _) =>
-                const SliverToBoxAdapter(child: SizedBox.shrink()),
+            error: (_, _) => const SliverToBoxAdapter(child: SizedBox.shrink()),
           ),
 
-          // ─── Recent Files ─────────────────────────────────
+          // ─── Recent Files Header ──────────────────────────
           recentAsync.when(
             data: (books) {
               if (books.isEmpty) {
@@ -85,41 +88,51 @@ class HomeScreen extends ConsumerWidget {
               return SliverToBoxAdapter(
                 child: _SectionHeader(
                   title: 'Recent Files',
-                  onSeeAll: () => context.go('/library'),
+                  onSeeAll: () {
+                    context.push('/recent');
+                  },
                 ),
               );
             },
             loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
-            error: (_, _) =>
-                const SliverToBoxAdapter(child: SizedBox.shrink()),
+            error: (_, _) => const SliverToBoxAdapter(child: SizedBox.shrink()),
           ),
+
+          // ─── Recent Files Vertical List ────────────────────
           recentAsync.when(
             data: (books) {
               if (books.isEmpty) {
                 return const SliverToBoxAdapter(child: SizedBox.shrink());
               }
-              return SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 180,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: books.length,
-                    itemBuilder: (context, index) {
-                      return _RecentBookCard(book: books[index]);
-                    },
-                  ),
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList.builder(
+                  itemCount: books.length,
+                  itemBuilder: (context, index) {
+                    final isLast = index == books.length - 1;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        RecentBookListTile(book: books[index]),
+                        if (!isLast)
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                          ),
+                      ],
+                    );
+                  },
                 ),
               );
             },
             loading: () => const SliverToBoxAdapter(
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (_, _) =>
-                const SliverToBoxAdapter(child: SizedBox.shrink()),
+            error: (_, _) => const SliverToBoxAdapter(child: SizedBox.shrink()),
           ),
 
-          // ─── Favorites ────────────────────────────────────
+          // ─── Favorites Header ──────────────────────────────
           favoritesAsync.when(
             data: (books) {
               if (books.isEmpty) {
@@ -128,14 +141,19 @@ class HomeScreen extends ConsumerWidget {
               return SliverToBoxAdapter(
                 child: _SectionHeader(
                   title: 'Favorites',
-                  onSeeAll: () => context.go('/library'),
+                  onSeeAll: () {
+                    ref.read(librarySortProvider.notifier).state = LibrarySort.name;
+                    ref.read(libraryViewProvider.notifier).state = LibraryView.grid;
+                    context.go('/library');
+                  },
                 ),
               );
             },
             loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
-            error: (_, _) =>
-                const SliverToBoxAdapter(child: SizedBox.shrink()),
+            error: (_, _) => const SliverToBoxAdapter(child: SizedBox.shrink()),
           ),
+
+          // ─── Favorites Grid ─────────────────────────────────
           favoritesAsync.when(
             data: (books) {
               if (books.isEmpty) {
@@ -158,8 +176,7 @@ class HomeScreen extends ConsumerWidget {
               );
             },
             loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
-            error: (_, _) =>
-                const SliverToBoxAdapter(child: SizedBox.shrink()),
+            error: (_, _) => const SliverToBoxAdapter(child: SizedBox.shrink()),
           ),
 
           // ─── Empty State ──────────────────────────────────
@@ -209,7 +226,7 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-// ─── Widgets ──────────────────────────────────────────────────
+// ─── Section Header ───────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   final String title;
@@ -238,14 +255,24 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _ContinueReadingCard extends StatelessWidget {
+// ─── Continue Reading Card ────────────────────────────────────
+
+// ─── Continue Reading Card ────────────────────────────────────
+
+class _ContinueReadingCard extends ConsumerWidget {
   final Book book;
 
   const _ContinueReadingCard({required this.book});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final progress = (book.readingProgress * 100).toInt();
+
+    final detailsParts = [
+      book.fileType.displayName,
+      '$progress%',
+      if (book.lastOpened != null) 'Last opened ${AppDateUtils.formatRelative(book.lastOpened!)}',
+    ];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -253,7 +280,13 @@ class _ContinueReadingCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () => context.push('/reader/${book.id}'),
+          onTap: () {
+            if (book.id.startsWith('temp_')) {
+              _handleTempBookTap(context, ref, book);
+            } else {
+              context.push('/reader/${book.id}');
+            }
+          },
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -306,25 +339,14 @@ class _ContinueReadingCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text(
-                      book.fileType.displayName,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    if (book.lastOpened != null)
-                      Text(
-                        AppDateUtils.formatRelative(book.lastOpened!),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 13,
-                        ),
-                      ),
-                  ],
+                Text(
+                  detailsParts.join('  •  '),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -360,90 +382,418 @@ class _ContinueReadingCard extends StatelessWidget {
       ),
     );
   }
+
+  void _handleTempBookTap(BuildContext context, WidgetRef ref, Book book) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final file = File(book.filePath);
+      if (await file.exists()) {
+        if (!context.mounted) return;
+        Navigator.pop(context);
+        context.push(
+          '/reader/${book.id}?filePath=${Uri.encodeComponent(book.filePath)}&originalUri=${Uri.encodeComponent(book.fileHash ?? "")}',
+        );
+      } else {
+        final originalUri = FileUtils.getOriginalUri(book);
+        if (originalUri != null && originalUri.startsWith('content://')) {
+          // Re-copy from SAF
+          final fileService = ref.read(fileServiceProvider);
+          final tempFile = await fileService.importFromUri(originalUri);
+          if (!context.mounted) return;
+          Navigator.pop(context);
+          if (tempFile != null) {
+            final db = ref.read(databaseProvider);
+            await db.updateBook(book.copyWith(filePath: tempFile.path));
+            if (!context.mounted) return;
+            context.push(
+              '/reader/${book.id}?filePath=${Uri.encodeComponent(tempFile.path)}&originalUri=${Uri.encodeComponent(originalUri)}',
+            );
+          } else {
+            throw Exception('Failed to recover file from storage');
+          }
+        } else {
+          if (!context.mounted) return;
+          Navigator.pop(context);
+          throw Exception('File cache was cleared and source URI is invalid');
+        }
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening file: $e')),
+      );
+    }
+  }
 }
 
-class _RecentBookCard extends StatelessWidget {
+// ─── Recent Book List Tile ────────────────────────────────────
+
+// ─── Recent Book List Tile ────────────────────────────────────
+
+class RecentBookListTile extends ConsumerWidget {
   final Book book;
 
-  const _RecentBookCard({required this.book});
+  const RecentBookListTile({required this.book, super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final progress = (book.readingProgress * 100).toInt();
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: SizedBox(
-        width: 140,
-        child: Material(
-          borderRadius: BorderRadius.circular(16),
-          color: theme.cardTheme.color,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () => context.push('/reader/${book.id}'),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: _getFileTypeColor(
-                        book.fileType,
-                      ).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      _getFileTypeIcon(book.fileType),
-                      color: _getFileTypeColor(book.fileType),
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: Text(
-                      book.title,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    book.fileType.displayName,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  if (book.readingProgress > 0) ...[
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(2),
-                      child: LinearProgressIndicator(
-                        value: book.readingProgress,
-                        minHeight: 3,
-                        backgroundColor: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.08,
-                        ),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryPurple,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+    final subtitleParts = [
+      book.fileType.displayName,
+      if (progress > 0) '$progress%',
+      if (book.lastOpened != null) AppDateUtils.formatRelative(book.lastOpened!),
+    ];
+
+    return Dismissible(
+      key: ValueKey('recent_dismiss_${book.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: theme.colorScheme.errorContainer,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(
+              'Remove from Recents',
+              style: TextStyle(
+                color: theme.colorScheme.onErrorContainer,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
               ),
             ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.delete_sweep_rounded,
+              color: theme.colorScheme.onErrorContainer,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+      onDismissed: (direction) {
+        _removeBookFromRecentsWithUndo(context, ref, book);
+      },
+      child: InkWell(
+        onTap: () {
+          if (book.id.startsWith('temp_')) {
+            _handleTempBookTap(context, ref, book);
+          } else {
+            context.push('/reader/${book.id}');
+          }
+        },
+        onLongPress: () => _showRecentBookMenu(context, ref, book),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+          child: Row(
+            children: [
+              // Leading Icon
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: _getFileTypeColor(book.fileType).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  _getFileTypeIcon(book.fileType),
+                  color: _getFileTypeColor(book.fileType),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // Title and subtitle block
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (book.isPinned) ...[
+                          Icon(
+                            Icons.push_pin_rounded,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Expanded(
+                          child: Text(
+                            book.title,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitleParts.join('  •  '),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    if (book.readingProgress > 0) ...[
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          value: book.readingProgress,
+                          minHeight: 2,
+                          backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            _getFileTypeColor(book.fileType),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  void _removeBookFromRecentsWithUndo(BuildContext context, WidgetRef ref, Book book) {
+    final oldLastOpened = book.lastOpened;
+    ref.read(libraryNotifierProvider.notifier).removeFromRecent(book);
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Removed "${book.title}" from Recents'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            if (oldLastOpened != null) {
+              ref.read(libraryNotifierProvider.notifier).restoreToRecent(book, oldLastOpened);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteLibraryBook(BuildContext context, WidgetRef ref, Book book) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Book'),
+        content: Text('Delete "${book.title}" from your library?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              ref.read(libraryNotifierProvider.notifier).deleteBook(book);
+              Navigator.pop(ctx);
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBookDetailsDialog(BuildContext context, Book book) {
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Book Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Title: ${book.title}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('Format: ${book.fileType.displayName}'),
+            const SizedBox(height: 4),
+            Text('Size: ${_formatSizeHelper(book.fileSize)}'),
+            const SizedBox(height: 4),
+            Text('Progress: ${(book.readingProgress * 100).toInt()}%'),
+            const SizedBox(height: 4),
+            Text('Path: ${book.filePath}'),
+            if (book.fileHash != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Hash/URI:\n${book.fileHash}',
+                style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace', fontSize: 10),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatSizeHelper(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+
+  void _showRecentBookMenu(BuildContext context, WidgetRef ref, Book book) {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  book.title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.book_rounded),
+                title: const Text('Open'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  if (book.id.startsWith('temp_')) {
+                    _handleTempBookTap(context, ref, book);
+                  } else {
+                    context.push('/reader/${book.id}');
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(book.isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined),
+                title: Text(book.isPinned ? 'Unpin' : 'Pin'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await ref.read(libraryNotifierProvider.notifier).togglePinned(book);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.history_rounded),
+                title: const Text('Remove from Recents'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _removeBookFromRecentsWithUndo(context, ref, book);
+                },
+              ),
+              if (!book.id.startsWith('temp_'))
+                ListTile(
+                  leading: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+                  title: const Text('Remove from Library', style: TextStyle(color: AppColors.error)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _confirmDeleteLibraryBook(context, ref, book);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.info_outline_rounded),
+                title: const Text('Details'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showBookDetailsDialog(context, book);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleTempBookTap(BuildContext context, WidgetRef ref, Book book) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final file = File(book.filePath);
+      if (await file.exists()) {
+        if (!context.mounted) return;
+        Navigator.pop(context);
+        context.push(
+          '/reader/${book.id}?filePath=${Uri.encodeComponent(book.filePath)}&originalUri=${Uri.encodeComponent(book.fileHash ?? "")}',
+        );
+      } else {
+        final originalUri = FileUtils.getOriginalUri(book);
+        if (originalUri != null && originalUri.startsWith('content://')) {
+          final fileService = ref.read(fileServiceProvider);
+          final tempFile = await fileService.importFromUri(originalUri);
+          if (!context.mounted) return;
+          Navigator.pop(context);
+          if (tempFile != null) {
+            final db = ref.read(databaseProvider);
+            await db.updateBook(book.copyWith(filePath: tempFile.path));
+            if (!context.mounted) return;
+            context.push(
+              '/reader/${book.id}?filePath=${Uri.encodeComponent(tempFile.path)}&originalUri=${Uri.encodeComponent(originalUri)}',
+            );
+          } else {
+            throw Exception('Failed to recover file from storage');
+          }
+        } else {
+          if (!context.mounted) return;
+          Navigator.pop(context);
+          throw Exception('File cache was cleared and source URI is invalid');
+        }
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening file: $e')),
+      );
+    }
+  }
 }
+
+// ─── Favorite Book Tile ───────────────────────────────────────
 
 class _FavoriteBookTile extends StatelessWidget {
   final Book book;
@@ -514,6 +864,8 @@ class _FavoriteBookTile extends StatelessWidget {
     );
   }
 }
+
+// ─── Empty State ──────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   @override

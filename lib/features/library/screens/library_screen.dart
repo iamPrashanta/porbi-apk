@@ -6,6 +6,7 @@ import 'package:porbi/core/utils/date_utils.dart';
 import 'package:porbi/features/library/providers/library_provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:porbi/models/book.dart';
+import 'package:porbi/features/library/widgets/folder_explorer_view.dart';
 
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
@@ -53,94 +54,117 @@ class LibraryScreen extends ConsumerWidget {
                 ],
               ),
               // View toggle
-              IconButton(
-                icon: Icon(
-                  viewMode == LibraryView.grid
-                      ? Icons.view_list_rounded
-                      : Icons.grid_view_rounded,
-                ),
-                tooltip: viewMode == LibraryView.grid
-                    ? 'List View'
-                    : 'Grid View',
-                onPressed: () {
-                  ref
-                      .read(libraryViewProvider.notifier)
-                      .state = viewMode == LibraryView.grid
-                      ? LibraryView.list
-                      : LibraryView.grid;
+              ToggleButtons(
+                isSelected: [
+                  viewMode == LibraryView.recent,
+                  viewMode == LibraryView.grid,
+                  viewMode == LibraryView.list,
+                  viewMode == LibraryView.folders,
+                ],
+                onPressed: (index) {
+                  final views = [
+                    LibraryView.recent,
+                    LibraryView.grid,
+                    LibraryView.list,
+                    LibraryView.folders
+                  ];
+                  ref.read(libraryViewProvider.notifier).state = views[index];
                 },
+                borderRadius: BorderRadius.circular(8),
+                constraints: const BoxConstraints(minHeight: 32, minWidth: 40),
+                children: const [
+                  Tooltip(message: 'Recent', child: Icon(Icons.access_time_rounded, size: 20)),
+                  Tooltip(message: 'Grid', child: Icon(Icons.grid_view_rounded, size: 20)),
+                  Tooltip(message: 'List', child: Icon(Icons.view_list_rounded, size: 20)),
+                  Tooltip(message: 'Folders', child: Icon(Icons.folder_outlined, size: 20)),
+                ],
               ),
               const SizedBox(width: 8),
             ],
           ),
-          booksAsync.when(
-            data: (books) {
-              if (books.isEmpty) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.library_books_outlined,
-                          size: 64,
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No books in library',
-                          style: theme.textTheme.titleMedium?.copyWith(
+          if (viewMode == LibraryView.folders) ...[
+            const SliverFillRemaining(
+              child: FolderExplorerView(),
+            ),
+          ] else ...[
+            booksAsync.when(
+              data: (books) {
+                if (books.isEmpty) {
+                  return SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.library_books_outlined,
+                            size: 64,
                             color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.5,
+                              alpha: 0.3,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          Text(
+                            'No books in library',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              }
+                  );
+                }
 
-              if (viewMode == LibraryView.grid) {
-                return SliverPadding(
-                  padding: const EdgeInsets.all(16),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.75,
-                        ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) =>
-                          _BookGridItem(book: books[index], ref: ref),
-                      childCount: books.length,
+                List<Book> displayBooks = books;
+                if (viewMode == LibraryView.recent) {
+                  displayBooks = [...books]..sort((a, b) {
+                    final aTime = a.lastOpened ?? a.addedAt;
+                    final bTime = b.lastOpened ?? b.addedAt;
+                    return bTime.compareTo(aTime);
+                  });
+                }
+
+                if (viewMode == LibraryView.grid || viewMode == LibraryView.recent) {
+                  return SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 0.75,
+                          ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) =>
+                            _BookGridItem(book: displayBooks[index], ref: ref),
+                        childCount: displayBooks.length,
+                      ),
                     ),
-                  ),
-                );
-              } else {
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) =>
-                          _BookListItem(book: books[index], ref: ref),
-                      childCount: books.length,
+                  );
+                } else {
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) =>
+                            _BookListItem(book: displayBooks[index], ref: ref),
+                        childCount: displayBooks.length,
+                      ),
                     ),
-                  ),
-                );
-              }
-            },
-            loading: () => const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+              },
+              loading: () => const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) =>
+                  SliverFillRemaining(child: Center(child: Text('Error: $e'))),
             ),
-            error: (e, _) =>
-                SliverFillRemaining(child: Center(child: Text('Error: $e'))),
-          ),
+          ],
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),

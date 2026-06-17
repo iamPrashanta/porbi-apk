@@ -5,6 +5,7 @@ import 'package:porbi/core/theme/reader_themes.dart';
 import 'package:porbi/features/reader/providers/reader_provider.dart';
 import 'package:porbi/core/storage/database.dart';
 import 'package:porbi/features/reader/providers/reader_preferences_provider.dart';
+import 'package:porbi/features/reader/providers/search_provider.dart';
 
 class ReaderBottomDock extends ConsumerWidget {
   final ReaderState state;
@@ -66,16 +67,18 @@ class ReaderBottomDock extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _DockAction(
-                    icon: Icons.map_outlined,
-                    label: 'Progress',
+                    icon: Icons.search_rounded,
+                    label: 'Search',
                     color: readerTheme.textColor,
-                    onTap: onShowProgress,
-                  ),
-                  _DockAction(
-                    icon: Icons.format_size_rounded,
-                    label: 'Settings',
-                    color: readerTheme.textColor,
-                    onTap: onShowSettings,
+                    onTap: () {
+                      final searchState = ref.read(searchProvider);
+                      final searchNotifier = ref.read(searchProvider.notifier);
+                      if (searchState.searchResultsVisible) {
+                        searchNotifier.hideSearch();
+                      } else {
+                        searchNotifier.showSearch();
+                      }
+                    },
                   ),
                   _DockAction(
                     icon: Icons.bookmark_outline_rounded,
@@ -90,10 +93,16 @@ class ReaderBottomDock extends ConsumerWidget {
                     onTap: onShowNotes,
                   ),
                   _DockAction(
+                    icon: Icons.settings_rounded,
+                    label: 'Settings',
+                    color: readerTheme.textColor,
+                    onTap: onShowSettings,
+                  ),
+                  _DockAction(
                     icon: preferences.fullscreenEnabled
-                        ? Icons.fullscreen_exit_rounded
-                        : Icons.fullscreen_rounded,
-                    label: 'Fullscreen',
+                        ? Icons.center_focus_strong_rounded
+                        : Icons.filter_center_focus_rounded,
+                    label: 'Focus',
                     color: readerTheme.textColor,
                     onTap: () {
                       ref.read(readerPreferencesProvider.notifier).toggleFullscreen();

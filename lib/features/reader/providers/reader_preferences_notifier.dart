@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:porbi/core/storage/database.dart';
@@ -16,7 +17,9 @@ class ReaderPreferencesNotifier extends StateNotifier<ReaderPreferencesState> {
   void _init() async {
     try {
       await _repository.getPreferences();
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('Error getting preferences: $e\n$st');
+    }
 
     _subscription = _repository.watchPreferences().listen(
       (preferences) {

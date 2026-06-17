@@ -71,6 +71,16 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_favorite" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _isPinnedMeta =
+      const VerificationMeta('isPinned');
+  @override
+  late final GeneratedColumn<bool> isPinned = GeneratedColumn<bool>(
+      'is_pinned', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_pinned" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _totalPagesMeta =
       const VerificationMeta('totalPages');
   @override
@@ -113,6 +123,7 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
         lastOpened,
         addedAt,
         isFavorite,
+        isPinned,
         totalPages,
         currentPage,
         readingProgress,
@@ -181,6 +192,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
           isFavorite.isAcceptableOrUnknown(
               data['is_favorite']!, _isFavoriteMeta));
     }
+    if (data.containsKey('is_pinned')) {
+      context.handle(_isPinnedMeta,
+          isPinned.isAcceptableOrUnknown(data['is_pinned']!, _isPinnedMeta));
+    }
     if (data.containsKey('total_pages')) {
       context.handle(
           _totalPagesMeta,
@@ -232,6 +247,8 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
           .read(DriftSqlType.dateTime, data['${effectivePrefix}added_at'])!,
       isFavorite: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
+      isPinned: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_pinned'])!,
       totalPages: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}total_pages'])!,
       currentPage: attachedDatabase.typeMapping
@@ -260,6 +277,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
   final DateTime? lastOpened;
   final DateTime addedAt;
   final bool isFavorite;
+  final bool isPinned;
   final int totalPages;
   final int currentPage;
   final double readingProgress;
@@ -275,6 +293,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
       this.lastOpened,
       required this.addedAt,
       required this.isFavorite,
+      required this.isPinned,
       required this.totalPages,
       required this.currentPage,
       required this.readingProgress,
@@ -298,6 +317,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
     }
     map['added_at'] = Variable<DateTime>(addedAt);
     map['is_favorite'] = Variable<bool>(isFavorite);
+    map['is_pinned'] = Variable<bool>(isPinned);
     map['total_pages'] = Variable<int>(totalPages);
     map['current_page'] = Variable<int>(currentPage);
     map['reading_progress'] = Variable<double>(readingProgress);
@@ -324,6 +344,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
           : Value(lastOpened),
       addedAt: Value(addedAt),
       isFavorite: Value(isFavorite),
+      isPinned: Value(isPinned),
       totalPages: Value(totalPages),
       currentPage: Value(currentPage),
       readingProgress: Value(readingProgress),
@@ -347,6 +368,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
       lastOpened: serializer.fromJson<DateTime?>(json['lastOpened']),
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
+      isPinned: serializer.fromJson<bool>(json['isPinned']),
       totalPages: serializer.fromJson<int>(json['totalPages']),
       currentPage: serializer.fromJson<int>(json['currentPage']),
       readingProgress: serializer.fromJson<double>(json['readingProgress']),
@@ -367,6 +389,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
       'lastOpened': serializer.toJson<DateTime?>(lastOpened),
       'addedAt': serializer.toJson<DateTime>(addedAt),
       'isFavorite': serializer.toJson<bool>(isFavorite),
+      'isPinned': serializer.toJson<bool>(isPinned),
       'totalPages': serializer.toJson<int>(totalPages),
       'currentPage': serializer.toJson<int>(currentPage),
       'readingProgress': serializer.toJson<double>(readingProgress),
@@ -385,6 +408,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
           Value<DateTime?> lastOpened = const Value.absent(),
           DateTime? addedAt,
           bool? isFavorite,
+          bool? isPinned,
           int? totalPages,
           int? currentPage,
           double? readingProgress,
@@ -400,6 +424,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
         lastOpened: lastOpened.present ? lastOpened.value : this.lastOpened,
         addedAt: addedAt ?? this.addedAt,
         isFavorite: isFavorite ?? this.isFavorite,
+        isPinned: isPinned ?? this.isPinned,
         totalPages: totalPages ?? this.totalPages,
         currentPage: currentPage ?? this.currentPage,
         readingProgress: readingProgress ?? this.readingProgress,
@@ -419,6 +444,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
       isFavorite:
           data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
+      isPinned: data.isPinned.present ? data.isPinned.value : this.isPinned,
       totalPages:
           data.totalPages.present ? data.totalPages.value : this.totalPages,
       currentPage:
@@ -443,6 +469,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
           ..write('lastOpened: $lastOpened, ')
           ..write('addedAt: $addedAt, ')
           ..write('isFavorite: $isFavorite, ')
+          ..write('isPinned: $isPinned, ')
           ..write('totalPages: $totalPages, ')
           ..write('currentPage: $currentPage, ')
           ..write('readingProgress: $readingProgress, ')
@@ -463,6 +490,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
       lastOpened,
       addedAt,
       isFavorite,
+      isPinned,
       totalPages,
       currentPage,
       readingProgress,
@@ -481,6 +509,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
           other.lastOpened == this.lastOpened &&
           other.addedAt == this.addedAt &&
           other.isFavorite == this.isFavorite &&
+          other.isPinned == this.isPinned &&
           other.totalPages == this.totalPages &&
           other.currentPage == this.currentPage &&
           other.readingProgress == this.readingProgress &&
@@ -498,6 +527,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
   final Value<DateTime?> lastOpened;
   final Value<DateTime> addedAt;
   final Value<bool> isFavorite;
+  final Value<bool> isPinned;
   final Value<int> totalPages;
   final Value<int> currentPage;
   final Value<double> readingProgress;
@@ -514,6 +544,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
     this.lastOpened = const Value.absent(),
     this.addedAt = const Value.absent(),
     this.isFavorite = const Value.absent(),
+    this.isPinned = const Value.absent(),
     this.totalPages = const Value.absent(),
     this.currentPage = const Value.absent(),
     this.readingProgress = const Value.absent(),
@@ -531,6 +562,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
     this.lastOpened = const Value.absent(),
     required DateTime addedAt,
     this.isFavorite = const Value.absent(),
+    this.isPinned = const Value.absent(),
     this.totalPages = const Value.absent(),
     this.currentPage = const Value.absent(),
     this.readingProgress = const Value.absent(),
@@ -552,6 +584,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
     Expression<DateTime>? lastOpened,
     Expression<DateTime>? addedAt,
     Expression<bool>? isFavorite,
+    Expression<bool>? isPinned,
     Expression<int>? totalPages,
     Expression<int>? currentPage,
     Expression<double>? readingProgress,
@@ -569,6 +602,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
       if (lastOpened != null) 'last_opened': lastOpened,
       if (addedAt != null) 'added_at': addedAt,
       if (isFavorite != null) 'is_favorite': isFavorite,
+      if (isPinned != null) 'is_pinned': isPinned,
       if (totalPages != null) 'total_pages': totalPages,
       if (currentPage != null) 'current_page': currentPage,
       if (readingProgress != null) 'reading_progress': readingProgress,
@@ -588,6 +622,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
       Value<DateTime?>? lastOpened,
       Value<DateTime>? addedAt,
       Value<bool>? isFavorite,
+      Value<bool>? isPinned,
       Value<int>? totalPages,
       Value<int>? currentPage,
       Value<double>? readingProgress,
@@ -604,6 +639,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
       lastOpened: lastOpened ?? this.lastOpened,
       addedAt: addedAt ?? this.addedAt,
       isFavorite: isFavorite ?? this.isFavorite,
+      isPinned: isPinned ?? this.isPinned,
       totalPages: totalPages ?? this.totalPages,
       currentPage: currentPage ?? this.currentPage,
       readingProgress: readingProgress ?? this.readingProgress,
@@ -645,6 +681,9 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
     if (isFavorite.present) {
       map['is_favorite'] = Variable<bool>(isFavorite.value);
     }
+    if (isPinned.present) {
+      map['is_pinned'] = Variable<bool>(isPinned.value);
+    }
     if (totalPages.present) {
       map['total_pages'] = Variable<int>(totalPages.value);
     }
@@ -676,6 +715,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
           ..write('lastOpened: $lastOpened, ')
           ..write('addedAt: $addedAt, ')
           ..write('isFavorite: $isFavorite, ')
+          ..write('isPinned: $isPinned, ')
           ..write('totalPages: $totalPages, ')
           ..write('currentPage: $currentPage, ')
           ..write('readingProgress: $readingProgress, ')
@@ -3198,6 +3238,7 @@ typedef $$BooksTableCreateCompanionBuilder = BooksCompanion Function({
   Value<DateTime?> lastOpened,
   required DateTime addedAt,
   Value<bool> isFavorite,
+  Value<bool> isPinned,
   Value<int> totalPages,
   Value<int> currentPage,
   Value<double> readingProgress,
@@ -3215,6 +3256,7 @@ typedef $$BooksTableUpdateCompanionBuilder = BooksCompanion Function({
   Value<DateTime?> lastOpened,
   Value<DateTime> addedAt,
   Value<bool> isFavorite,
+  Value<bool> isPinned,
   Value<int> totalPages,
   Value<int> currentPage,
   Value<double> readingProgress,
@@ -3324,6 +3366,9 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
 
   ColumnFilters<bool> get isFavorite => $composableBuilder(
       column: $table.isFavorite, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isPinned => $composableBuilder(
+      column: $table.isPinned, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get totalPages => $composableBuilder(
       column: $table.totalPages, builder: (column) => ColumnFilters(column));
@@ -3462,6 +3507,9 @@ class $$BooksTableOrderingComposer
   ColumnOrderings<bool> get isFavorite => $composableBuilder(
       column: $table.isFavorite, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isPinned => $composableBuilder(
+      column: $table.isPinned, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get totalPages => $composableBuilder(
       column: $table.totalPages, builder: (column) => ColumnOrderings(column));
 
@@ -3514,6 +3562,9 @@ class $$BooksTableAnnotationComposer
 
   GeneratedColumn<bool> get isFavorite => $composableBuilder(
       column: $table.isFavorite, builder: (column) => column);
+
+  GeneratedColumn<bool> get isPinned =>
+      $composableBuilder(column: $table.isPinned, builder: (column) => column);
 
   GeneratedColumn<int> get totalPages => $composableBuilder(
       column: $table.totalPages, builder: (column) => column);
@@ -3650,6 +3701,7 @@ class $$BooksTableTableManager extends RootTableManager<
             Value<DateTime?> lastOpened = const Value.absent(),
             Value<DateTime> addedAt = const Value.absent(),
             Value<bool> isFavorite = const Value.absent(),
+            Value<bool> isPinned = const Value.absent(),
             Value<int> totalPages = const Value.absent(),
             Value<int> currentPage = const Value.absent(),
             Value<double> readingProgress = const Value.absent(),
@@ -3667,6 +3719,7 @@ class $$BooksTableTableManager extends RootTableManager<
             lastOpened: lastOpened,
             addedAt: addedAt,
             isFavorite: isFavorite,
+            isPinned: isPinned,
             totalPages: totalPages,
             currentPage: currentPage,
             readingProgress: readingProgress,
@@ -3684,6 +3737,7 @@ class $$BooksTableTableManager extends RootTableManager<
             Value<DateTime?> lastOpened = const Value.absent(),
             required DateTime addedAt,
             Value<bool> isFavorite = const Value.absent(),
+            Value<bool> isPinned = const Value.absent(),
             Value<int> totalPages = const Value.absent(),
             Value<int> currentPage = const Value.absent(),
             Value<double> readingProgress = const Value.absent(),
@@ -3701,6 +3755,7 @@ class $$BooksTableTableManager extends RootTableManager<
             lastOpened: lastOpened,
             addedAt: addedAt,
             isFavorite: isFavorite,
+            isPinned: isPinned,
             totalPages: totalPages,
             currentPage: currentPage,
             readingProgress: readingProgress,

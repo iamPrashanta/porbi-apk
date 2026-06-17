@@ -53,6 +53,7 @@ class Book {
   final DateTime? lastOpened;
   final DateTime addedAt;
   final bool isFavorite;
+  final bool isPinned;
   final int totalPages;
   final int currentPage;
   final double readingProgress;
@@ -69,6 +70,7 @@ class Book {
     this.lastOpened,
     required this.addedAt,
     this.isFavorite = false,
+    this.isPinned = false,
     this.totalPages = 0,
     this.currentPage = 0,
     this.readingProgress = 0.0,
@@ -86,6 +88,7 @@ class Book {
     DateTime? lastOpened,
     DateTime? addedAt,
     bool? isFavorite,
+    bool? isPinned,
     int? totalPages,
     int? currentPage,
     double? readingProgress,
@@ -102,9 +105,30 @@ class Book {
       lastOpened: lastOpened ?? this.lastOpened,
       addedAt: addedAt ?? this.addedAt,
       isFavorite: isFavorite ?? this.isFavorite,
+      isPinned: isPinned ?? this.isPinned,
       totalPages: totalPages ?? this.totalPages,
       currentPage: currentPage ?? this.currentPage,
       readingProgress: readingProgress ?? this.readingProgress,
+    );
+  }
+
+  Book clearLastOpened() {
+    return Book(
+      id: id,
+      title: title,
+      author: author,
+      filePath: filePath,
+      fileType: fileType,
+      fileSize: fileSize,
+      coverPath: coverPath,
+      fileHash: fileHash,
+      lastOpened: null,
+      addedAt: addedAt,
+      isFavorite: isFavorite,
+      isPinned: isPinned,
+      totalPages: totalPages,
+      currentPage: currentPage,
+      readingProgress: readingProgress,
     );
   }
 

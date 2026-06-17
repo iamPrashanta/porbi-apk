@@ -22,6 +22,7 @@ class Books extends Table {
   DateTimeColumn get lastOpened => dateTime().nullable()();
   DateTimeColumn get addedAt => dateTime()();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
+  BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
   IntColumn get totalPages => integer().withDefault(const Constant(0))();
   IntColumn get currentPage => integer().withDefault(const Constant(0))();
   RealColumn get readingProgress => real().withDefault(const Constant(0.0))();
@@ -120,7 +121,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -148,6 +149,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(bookmarks, bookmarks.scrollOffset);
             await m.addColumn(bookmarks, bookmarks.previewText);
           }
+          if (from < 5) {
+            await m.addColumn(books, books.isPinned);
+          }
         },
       );
 
@@ -173,12 +177,21 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<Book>> watchAllBooks() {
-    return select(books).watch().map((rows) => rows.map(_bookFromRow).toList());
+    return (select(books)..where((b) => b.id.like('temp_%').equals(false))).watch().map((rows) => rows.map(_bookFromRow).toList());
   }
 
   Stream<List<Book>> watchRecentBooks({int limit = 10}) {
     return (select(books)
           ..where((b) => b.lastOpened.isNotNull())
+          ..orderBy([(b) => OrderingTerm.desc(b.lastOpened)])
+          ..limit(limit))
+        .watch()
+        .map((rows) => rows.map(_bookFromRow).toList());
+  }
+
+  Stream<List<Book>> watchRecentTempBooks({int limit = 10}) {
+    return (select(books)
+          ..where((b) => b.id.like('temp_%') & b.lastOpened.isNotNull())
           ..orderBy([(b) => OrderingTerm.desc(b.lastOpened)])
           ..limit(limit))
         .watch()
@@ -321,6 +334,7 @@ class AppDatabase extends _$AppDatabase {
               'lastOpened': b.lastOpened?.toIso8601String(),
               'addedAt': b.addedAt.toIso8601String(),
               'isFavorite': b.isFavorite,
+              'isPinned': b.isPinned,
               'totalPages': b.totalPages,
               'currentPage': b.currentPage,
               'readingProgress': b.readingProgress,
@@ -435,6 +449,7 @@ class AppDatabase extends _$AppDatabase {
             ),
             addedAt: DateTime.parse(b['addedAt'] as String),
             isFavorite: Value(b['isFavorite'] as bool? ?? false),
+            isPinned: Value(b['isPinned'] as bool? ?? false),
             totalPages: Value(b['totalPages'] as int? ?? 0),
             currentPage: Value(b['currentPage'] as int? ?? 0),
             readingProgress: Value((b['readingProgress'] as num?)?.toDouble() ?? 0.0),
@@ -554,9 +569,11 @@ class AppDatabase extends _$AppDatabase {
       fileType:
           FileTypeExtension.fromExtension('.${row.fileType}') ?? FileType.txt,
       coverPath: row.coverPath,
+      fileHash: row.fileHash,
       lastOpened: row.lastOpened,
       addedAt: row.addedAt,
       isFavorite: row.isFavorite,
+      isPinned: row.isPinned,
       totalPages: row.totalPages,
       currentPage: row.currentPage,
       readingProgress: row.readingProgress,
@@ -570,9 +587,11 @@ class AppDatabase extends _$AppDatabase {
       filePath: Value(book.filePath),
       fileType: Value(book.fileType.name),
       coverPath: Value(book.coverPath),
+      fileHash: Value(book.fileHash),
       lastOpened: Value(book.lastOpened),
       addedAt: Value(book.addedAt),
       isFavorite: Value(book.isFavorite),
+      isPinned: Value(book.isPinned),
       totalPages: Value(book.totalPages),
       currentPage: Value(book.currentPage),
       readingProgress: Value(book.readingProgress),
