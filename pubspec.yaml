@@ -1,0 +1,95 @@
+name: porbi
+description: "Read Anything, Anywhere — An offline-first document reader."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: any
+  riverpod_annotation: any
+
+  # Routing
+  go_router: any
+
+  # Storage
+  drift: any
+  sqlite3_flutter_libs: any
+
+  # Settings
+  shared_preferences: any
+
+  # File Access
+  file_picker: 11.0.2
+  path_provider: any
+  path: any
+
+  # EPUB
+  epubx: any
+
+  # Markdown
+  flutter_markdown: any
+
+  # HTML
+  flutter_html: any
+
+  # ZIP / Archive
+  archive: any
+
+  # Permissions
+  permission_handler: any
+
+  # Utilities
+  intl: any
+  uuid: any
+  collection: any
+
+  # Fonts
+  google_fonts: any
+
+  # Syntax Highlighting
+  flutter_highlight: any
+  highlight: any
+
+  # Serialization
+  json_annotation: any
+
+  # Share
+  share_plus: any
+
+  # URL Launcher (for links in HTML/MD)
+  url_launcher: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: any
+
+  # Code Generation
+  drift_dev: any
+  build_runner: any
+  json_serializable: any
+
+  # Launcher Icons
+  flutter_launcher_icons: any
+
+# Launcher Icons Configuration
+flutter_icons:
+  android: true
+  image_path: "assets/logo/logo.png"
+  adaptive_icon_background: "#1A1A2E"
+  adaptive_icon_foreground: "assets/logo/logo.png"
+  adaptive_icon_monochrome: "assets/logo/logo.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/logo/
