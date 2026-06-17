@@ -61,9 +61,14 @@ dependencies:
 
   # Share
   share_plus: any
+  receive_sharing_intent: any
 
   # URL Launcher (for links in HTML/MD)
   url_launcher: any
+  app_links: any
+
+  # Hashing
+  crypto: any
 
 dev_dependencies:
   flutter_test:

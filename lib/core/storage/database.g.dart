@@ -18,6 +18,11 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
       'title', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _authorMeta = const VerificationMeta('author');
+  @override
+  late final GeneratedColumn<String> author = GeneratedColumn<String>(
+      'author', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _filePathMeta =
       const VerificationMeta('filePath');
   @override
@@ -30,6 +35,14 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
   late final GeneratedColumn<String> fileType = GeneratedColumn<String>(
       'file_type', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _fileSizeMeta =
+      const VerificationMeta('fileSize');
+  @override
+  late final GeneratedColumn<int> fileSize = GeneratedColumn<int>(
+      'file_size', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   static const VerificationMeta _coverPathMeta =
       const VerificationMeta('coverPath');
   @override
@@ -82,19 +95,28 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0.0));
+  static const VerificationMeta _fileHashMeta =
+      const VerificationMeta('fileHash');
+  @override
+  late final GeneratedColumn<String> fileHash = GeneratedColumn<String>(
+      'file_hash', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
         title,
+        author,
         filePath,
         fileType,
+        fileSize,
         coverPath,
         lastOpened,
         addedAt,
         isFavorite,
         totalPages,
         currentPage,
-        readingProgress
+        readingProgress,
+        fileHash
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -117,6 +139,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
     } else if (isInserting) {
       context.missing(_titleMeta);
     }
+    if (data.containsKey('author')) {
+      context.handle(_authorMeta,
+          author.isAcceptableOrUnknown(data['author']!, _authorMeta));
+    }
     if (data.containsKey('file_path')) {
       context.handle(_filePathMeta,
           filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta));
@@ -128,6 +154,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
           fileType.isAcceptableOrUnknown(data['file_type']!, _fileTypeMeta));
     } else if (isInserting) {
       context.missing(_fileTypeMeta);
+    }
+    if (data.containsKey('file_size')) {
+      context.handle(_fileSizeMeta,
+          fileSize.isAcceptableOrUnknown(data['file_size']!, _fileSizeMeta));
     }
     if (data.containsKey('cover_path')) {
       context.handle(_coverPathMeta,
@@ -169,6 +199,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
           readingProgress.isAcceptableOrUnknown(
               data['reading_progress']!, _readingProgressMeta));
     }
+    if (data.containsKey('file_hash')) {
+      context.handle(_fileHashMeta,
+          fileHash.isAcceptableOrUnknown(data['file_hash']!, _fileHashMeta));
+    }
     return context;
   }
 
@@ -182,10 +216,14 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       title: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      author: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}author']),
       filePath: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}file_path'])!,
       fileType: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}file_type'])!,
+      fileSize: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}file_size'])!,
       coverPath: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}cover_path']),
       lastOpened: attachedDatabase.typeMapping
@@ -200,6 +238,8 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
           .read(DriftSqlType.int, data['${effectivePrefix}current_page'])!,
       readingProgress: attachedDatabase.typeMapping.read(
           DriftSqlType.double, data['${effectivePrefix}reading_progress'])!,
+      fileHash: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}file_hash']),
     );
   }
 
@@ -212,8 +252,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BooksData> {
 class BooksData extends DataClass implements Insertable<BooksData> {
   final String id;
   final String title;
+  final String? author;
   final String filePath;
   final String fileType;
+  final int fileSize;
   final String? coverPath;
   final DateTime? lastOpened;
   final DateTime addedAt;
@@ -221,25 +263,33 @@ class BooksData extends DataClass implements Insertable<BooksData> {
   final int totalPages;
   final int currentPage;
   final double readingProgress;
+  final String? fileHash;
   const BooksData(
       {required this.id,
       required this.title,
+      this.author,
       required this.filePath,
       required this.fileType,
+      required this.fileSize,
       this.coverPath,
       this.lastOpened,
       required this.addedAt,
       required this.isFavorite,
       required this.totalPages,
       required this.currentPage,
-      required this.readingProgress});
+      required this.readingProgress,
+      this.fileHash});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['title'] = Variable<String>(title);
+    if (!nullToAbsent || author != null) {
+      map['author'] = Variable<String>(author);
+    }
     map['file_path'] = Variable<String>(filePath);
     map['file_type'] = Variable<String>(fileType);
+    map['file_size'] = Variable<int>(fileSize);
     if (!nullToAbsent || coverPath != null) {
       map['cover_path'] = Variable<String>(coverPath);
     }
@@ -251,6 +301,9 @@ class BooksData extends DataClass implements Insertable<BooksData> {
     map['total_pages'] = Variable<int>(totalPages);
     map['current_page'] = Variable<int>(currentPage);
     map['reading_progress'] = Variable<double>(readingProgress);
+    if (!nullToAbsent || fileHash != null) {
+      map['file_hash'] = Variable<String>(fileHash);
+    }
     return map;
   }
 
@@ -258,8 +311,11 @@ class BooksData extends DataClass implements Insertable<BooksData> {
     return BooksCompanion(
       id: Value(id),
       title: Value(title),
+      author:
+          author == null && nullToAbsent ? const Value.absent() : Value(author),
       filePath: Value(filePath),
       fileType: Value(fileType),
+      fileSize: Value(fileSize),
       coverPath: coverPath == null && nullToAbsent
           ? const Value.absent()
           : Value(coverPath),
@@ -271,6 +327,9 @@ class BooksData extends DataClass implements Insertable<BooksData> {
       totalPages: Value(totalPages),
       currentPage: Value(currentPage),
       readingProgress: Value(readingProgress),
+      fileHash: fileHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fileHash),
     );
   }
 
@@ -280,8 +339,10 @@ class BooksData extends DataClass implements Insertable<BooksData> {
     return BooksData(
       id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
+      author: serializer.fromJson<String?>(json['author']),
       filePath: serializer.fromJson<String>(json['filePath']),
       fileType: serializer.fromJson<String>(json['fileType']),
+      fileSize: serializer.fromJson<int>(json['fileSize']),
       coverPath: serializer.fromJson<String?>(json['coverPath']),
       lastOpened: serializer.fromJson<DateTime?>(json['lastOpened']),
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
@@ -289,6 +350,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
       totalPages: serializer.fromJson<int>(json['totalPages']),
       currentPage: serializer.fromJson<int>(json['currentPage']),
       readingProgress: serializer.fromJson<double>(json['readingProgress']),
+      fileHash: serializer.fromJson<String?>(json['fileHash']),
     );
   }
   @override
@@ -297,8 +359,10 @@ class BooksData extends DataClass implements Insertable<BooksData> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'title': serializer.toJson<String>(title),
+      'author': serializer.toJson<String?>(author),
       'filePath': serializer.toJson<String>(filePath),
       'fileType': serializer.toJson<String>(fileType),
+      'fileSize': serializer.toJson<int>(fileSize),
       'coverPath': serializer.toJson<String?>(coverPath),
       'lastOpened': serializer.toJson<DateTime?>(lastOpened),
       'addedAt': serializer.toJson<DateTime>(addedAt),
@@ -306,26 +370,32 @@ class BooksData extends DataClass implements Insertable<BooksData> {
       'totalPages': serializer.toJson<int>(totalPages),
       'currentPage': serializer.toJson<int>(currentPage),
       'readingProgress': serializer.toJson<double>(readingProgress),
+      'fileHash': serializer.toJson<String?>(fileHash),
     };
   }
 
   BooksData copyWith(
           {String? id,
           String? title,
+          Value<String?> author = const Value.absent(),
           String? filePath,
           String? fileType,
+          int? fileSize,
           Value<String?> coverPath = const Value.absent(),
           Value<DateTime?> lastOpened = const Value.absent(),
           DateTime? addedAt,
           bool? isFavorite,
           int? totalPages,
           int? currentPage,
-          double? readingProgress}) =>
+          double? readingProgress,
+          Value<String?> fileHash = const Value.absent()}) =>
       BooksData(
         id: id ?? this.id,
         title: title ?? this.title,
+        author: author.present ? author.value : this.author,
         filePath: filePath ?? this.filePath,
         fileType: fileType ?? this.fileType,
+        fileSize: fileSize ?? this.fileSize,
         coverPath: coverPath.present ? coverPath.value : this.coverPath,
         lastOpened: lastOpened.present ? lastOpened.value : this.lastOpened,
         addedAt: addedAt ?? this.addedAt,
@@ -333,13 +403,16 @@ class BooksData extends DataClass implements Insertable<BooksData> {
         totalPages: totalPages ?? this.totalPages,
         currentPage: currentPage ?? this.currentPage,
         readingProgress: readingProgress ?? this.readingProgress,
+        fileHash: fileHash.present ? fileHash.value : this.fileHash,
       );
   BooksData copyWithCompanion(BooksCompanion data) {
     return BooksData(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
+      author: data.author.present ? data.author.value : this.author,
       filePath: data.filePath.present ? data.filePath.value : this.filePath,
       fileType: data.fileType.present ? data.fileType.value : this.fileType,
+      fileSize: data.fileSize.present ? data.fileSize.value : this.fileSize,
       coverPath: data.coverPath.present ? data.coverPath.value : this.coverPath,
       lastOpened:
           data.lastOpened.present ? data.lastOpened.value : this.lastOpened,
@@ -353,6 +426,7 @@ class BooksData extends DataClass implements Insertable<BooksData> {
       readingProgress: data.readingProgress.present
           ? data.readingProgress.value
           : this.readingProgress,
+      fileHash: data.fileHash.present ? data.fileHash.value : this.fileHash,
     );
   }
 
@@ -361,15 +435,18 @@ class BooksData extends DataClass implements Insertable<BooksData> {
     return (StringBuffer('BooksData(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('author: $author, ')
           ..write('filePath: $filePath, ')
           ..write('fileType: $fileType, ')
+          ..write('fileSize: $fileSize, ')
           ..write('coverPath: $coverPath, ')
           ..write('lastOpened: $lastOpened, ')
           ..write('addedAt: $addedAt, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('totalPages: $totalPages, ')
           ..write('currentPage: $currentPage, ')
-          ..write('readingProgress: $readingProgress')
+          ..write('readingProgress: $readingProgress, ')
+          ..write('fileHash: $fileHash')
           ..write(')'))
         .toString();
   }
@@ -378,37 +455,45 @@ class BooksData extends DataClass implements Insertable<BooksData> {
   int get hashCode => Object.hash(
       id,
       title,
+      author,
       filePath,
       fileType,
+      fileSize,
       coverPath,
       lastOpened,
       addedAt,
       isFavorite,
       totalPages,
       currentPage,
-      readingProgress);
+      readingProgress,
+      fileHash);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is BooksData &&
           other.id == this.id &&
           other.title == this.title &&
+          other.author == this.author &&
           other.filePath == this.filePath &&
           other.fileType == this.fileType &&
+          other.fileSize == this.fileSize &&
           other.coverPath == this.coverPath &&
           other.lastOpened == this.lastOpened &&
           other.addedAt == this.addedAt &&
           other.isFavorite == this.isFavorite &&
           other.totalPages == this.totalPages &&
           other.currentPage == this.currentPage &&
-          other.readingProgress == this.readingProgress);
+          other.readingProgress == this.readingProgress &&
+          other.fileHash == this.fileHash);
 }
 
 class BooksCompanion extends UpdateCompanion<BooksData> {
   final Value<String> id;
   final Value<String> title;
+  final Value<String?> author;
   final Value<String> filePath;
   final Value<String> fileType;
+  final Value<int> fileSize;
   final Value<String?> coverPath;
   final Value<DateTime?> lastOpened;
   final Value<DateTime> addedAt;
@@ -416,12 +501,15 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
   final Value<int> totalPages;
   final Value<int> currentPage;
   final Value<double> readingProgress;
+  final Value<String?> fileHash;
   final Value<int> rowid;
   const BooksCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
+    this.author = const Value.absent(),
     this.filePath = const Value.absent(),
     this.fileType = const Value.absent(),
+    this.fileSize = const Value.absent(),
     this.coverPath = const Value.absent(),
     this.lastOpened = const Value.absent(),
     this.addedAt = const Value.absent(),
@@ -429,13 +517,16 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
     this.totalPages = const Value.absent(),
     this.currentPage = const Value.absent(),
     this.readingProgress = const Value.absent(),
+    this.fileHash = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   BooksCompanion.insert({
     required String id,
     required String title,
+    this.author = const Value.absent(),
     required String filePath,
     required String fileType,
+    this.fileSize = const Value.absent(),
     this.coverPath = const Value.absent(),
     this.lastOpened = const Value.absent(),
     required DateTime addedAt,
@@ -443,6 +534,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
     this.totalPages = const Value.absent(),
     this.currentPage = const Value.absent(),
     this.readingProgress = const Value.absent(),
+    this.fileHash = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         title = Value(title),
@@ -452,8 +544,10 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
   static Insertable<BooksData> custom({
     Expression<String>? id,
     Expression<String>? title,
+    Expression<String>? author,
     Expression<String>? filePath,
     Expression<String>? fileType,
+    Expression<int>? fileSize,
     Expression<String>? coverPath,
     Expression<DateTime>? lastOpened,
     Expression<DateTime>? addedAt,
@@ -461,13 +555,16 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
     Expression<int>? totalPages,
     Expression<int>? currentPage,
     Expression<double>? readingProgress,
+    Expression<String>? fileHash,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (title != null) 'title': title,
+      if (author != null) 'author': author,
       if (filePath != null) 'file_path': filePath,
       if (fileType != null) 'file_type': fileType,
+      if (fileSize != null) 'file_size': fileSize,
       if (coverPath != null) 'cover_path': coverPath,
       if (lastOpened != null) 'last_opened': lastOpened,
       if (addedAt != null) 'added_at': addedAt,
@@ -475,6 +572,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
       if (totalPages != null) 'total_pages': totalPages,
       if (currentPage != null) 'current_page': currentPage,
       if (readingProgress != null) 'reading_progress': readingProgress,
+      if (fileHash != null) 'file_hash': fileHash,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -482,8 +580,10 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
   BooksCompanion copyWith(
       {Value<String>? id,
       Value<String>? title,
+      Value<String?>? author,
       Value<String>? filePath,
       Value<String>? fileType,
+      Value<int>? fileSize,
       Value<String?>? coverPath,
       Value<DateTime?>? lastOpened,
       Value<DateTime>? addedAt,
@@ -491,12 +591,15 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
       Value<int>? totalPages,
       Value<int>? currentPage,
       Value<double>? readingProgress,
+      Value<String?>? fileHash,
       Value<int>? rowid}) {
     return BooksCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
+      author: author ?? this.author,
       filePath: filePath ?? this.filePath,
       fileType: fileType ?? this.fileType,
+      fileSize: fileSize ?? this.fileSize,
       coverPath: coverPath ?? this.coverPath,
       lastOpened: lastOpened ?? this.lastOpened,
       addedAt: addedAt ?? this.addedAt,
@@ -504,6 +607,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
       totalPages: totalPages ?? this.totalPages,
       currentPage: currentPage ?? this.currentPage,
       readingProgress: readingProgress ?? this.readingProgress,
+      fileHash: fileHash ?? this.fileHash,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -517,11 +621,17 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
     if (title.present) {
       map['title'] = Variable<String>(title.value);
     }
+    if (author.present) {
+      map['author'] = Variable<String>(author.value);
+    }
     if (filePath.present) {
       map['file_path'] = Variable<String>(filePath.value);
     }
     if (fileType.present) {
       map['file_type'] = Variable<String>(fileType.value);
+    }
+    if (fileSize.present) {
+      map['file_size'] = Variable<int>(fileSize.value);
     }
     if (coverPath.present) {
       map['cover_path'] = Variable<String>(coverPath.value);
@@ -544,6 +654,9 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
     if (readingProgress.present) {
       map['reading_progress'] = Variable<double>(readingProgress.value);
     }
+    if (fileHash.present) {
+      map['file_hash'] = Variable<String>(fileHash.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -555,8 +668,10 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
     return (StringBuffer('BooksCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('author: $author, ')
           ..write('filePath: $filePath, ')
           ..write('fileType: $fileType, ')
+          ..write('fileSize: $fileSize, ')
           ..write('coverPath: $coverPath, ')
           ..write('lastOpened: $lastOpened, ')
           ..write('addedAt: $addedAt, ')
@@ -564,6 +679,7 @@ class BooksCompanion extends UpdateCompanion<BooksData> {
           ..write('totalPages: $totalPages, ')
           ..write('currentPage: $currentPage, ')
           ..write('readingProgress: $readingProgress, ')
+          ..write('fileHash: $fileHash, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1807,6 +1923,621 @@ class ReadingProgressesCompanion
   }
 }
 
+class $ReaderSettingsTable extends ReaderSettings
+    with TableInfo<$ReaderSettingsTable, ReaderSettingsData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReaderSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _fontSizeMeta =
+      const VerificationMeta('fontSize');
+  @override
+  late final GeneratedColumn<double> fontSize = GeneratedColumn<double>(
+      'font_size', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(16.0));
+  static const VerificationMeta _fontFamilyMeta =
+      const VerificationMeta('fontFamily');
+  @override
+  late final GeneratedColumn<String> fontFamily = GeneratedColumn<String>(
+      'font_family', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('System'));
+  static const VerificationMeta _lineHeightMeta =
+      const VerificationMeta('lineHeight');
+  @override
+  late final GeneratedColumn<double> lineHeight = GeneratedColumn<double>(
+      'line_height', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1.5));
+  static const VerificationMeta _themeModeMeta =
+      const VerificationMeta('themeMode');
+  @override
+  late final GeneratedColumn<String> themeMode = GeneratedColumn<String>(
+      'theme_mode', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('light'));
+  static const VerificationMeta _marginMeta = const VerificationMeta('margin');
+  @override
+  late final GeneratedColumn<double> margin = GeneratedColumn<double>(
+      'margin', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(16.0));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, fontSize, fontFamily, lineHeight, themeMode, margin];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reader_settings';
+  @override
+  VerificationContext validateIntegrity(Insertable<ReaderSettingsData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('font_size')) {
+      context.handle(_fontSizeMeta,
+          fontSize.isAcceptableOrUnknown(data['font_size']!, _fontSizeMeta));
+    }
+    if (data.containsKey('font_family')) {
+      context.handle(
+          _fontFamilyMeta,
+          fontFamily.isAcceptableOrUnknown(
+              data['font_family']!, _fontFamilyMeta));
+    }
+    if (data.containsKey('line_height')) {
+      context.handle(
+          _lineHeightMeta,
+          lineHeight.isAcceptableOrUnknown(
+              data['line_height']!, _lineHeightMeta));
+    }
+    if (data.containsKey('theme_mode')) {
+      context.handle(_themeModeMeta,
+          themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta));
+    }
+    if (data.containsKey('margin')) {
+      context.handle(_marginMeta,
+          margin.isAcceptableOrUnknown(data['margin']!, _marginMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReaderSettingsData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReaderSettingsData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      fontSize: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}font_size'])!,
+      fontFamily: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}font_family'])!,
+      lineHeight: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}line_height'])!,
+      themeMode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}theme_mode'])!,
+      margin: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}margin'])!,
+    );
+  }
+
+  @override
+  $ReaderSettingsTable createAlias(String alias) {
+    return $ReaderSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class ReaderSettingsData extends DataClass
+    implements Insertable<ReaderSettingsData> {
+  final String id;
+  final double fontSize;
+  final String fontFamily;
+  final double lineHeight;
+  final String themeMode;
+  final double margin;
+  const ReaderSettingsData(
+      {required this.id,
+      required this.fontSize,
+      required this.fontFamily,
+      required this.lineHeight,
+      required this.themeMode,
+      required this.margin});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['font_size'] = Variable<double>(fontSize);
+    map['font_family'] = Variable<String>(fontFamily);
+    map['line_height'] = Variable<double>(lineHeight);
+    map['theme_mode'] = Variable<String>(themeMode);
+    map['margin'] = Variable<double>(margin);
+    return map;
+  }
+
+  ReaderSettingsCompanion toCompanion(bool nullToAbsent) {
+    return ReaderSettingsCompanion(
+      id: Value(id),
+      fontSize: Value(fontSize),
+      fontFamily: Value(fontFamily),
+      lineHeight: Value(lineHeight),
+      themeMode: Value(themeMode),
+      margin: Value(margin),
+    );
+  }
+
+  factory ReaderSettingsData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReaderSettingsData(
+      id: serializer.fromJson<String>(json['id']),
+      fontSize: serializer.fromJson<double>(json['fontSize']),
+      fontFamily: serializer.fromJson<String>(json['fontFamily']),
+      lineHeight: serializer.fromJson<double>(json['lineHeight']),
+      themeMode: serializer.fromJson<String>(json['themeMode']),
+      margin: serializer.fromJson<double>(json['margin']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'fontSize': serializer.toJson<double>(fontSize),
+      'fontFamily': serializer.toJson<String>(fontFamily),
+      'lineHeight': serializer.toJson<double>(lineHeight),
+      'themeMode': serializer.toJson<String>(themeMode),
+      'margin': serializer.toJson<double>(margin),
+    };
+  }
+
+  ReaderSettingsData copyWith(
+          {String? id,
+          double? fontSize,
+          String? fontFamily,
+          double? lineHeight,
+          String? themeMode,
+          double? margin}) =>
+      ReaderSettingsData(
+        id: id ?? this.id,
+        fontSize: fontSize ?? this.fontSize,
+        fontFamily: fontFamily ?? this.fontFamily,
+        lineHeight: lineHeight ?? this.lineHeight,
+        themeMode: themeMode ?? this.themeMode,
+        margin: margin ?? this.margin,
+      );
+  ReaderSettingsData copyWithCompanion(ReaderSettingsCompanion data) {
+    return ReaderSettingsData(
+      id: data.id.present ? data.id.value : this.id,
+      fontSize: data.fontSize.present ? data.fontSize.value : this.fontSize,
+      fontFamily:
+          data.fontFamily.present ? data.fontFamily.value : this.fontFamily,
+      lineHeight:
+          data.lineHeight.present ? data.lineHeight.value : this.lineHeight,
+      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
+      margin: data.margin.present ? data.margin.value : this.margin,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReaderSettingsData(')
+          ..write('id: $id, ')
+          ..write('fontSize: $fontSize, ')
+          ..write('fontFamily: $fontFamily, ')
+          ..write('lineHeight: $lineHeight, ')
+          ..write('themeMode: $themeMode, ')
+          ..write('margin: $margin')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, fontSize, fontFamily, lineHeight, themeMode, margin);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReaderSettingsData &&
+          other.id == this.id &&
+          other.fontSize == this.fontSize &&
+          other.fontFamily == this.fontFamily &&
+          other.lineHeight == this.lineHeight &&
+          other.themeMode == this.themeMode &&
+          other.margin == this.margin);
+}
+
+class ReaderSettingsCompanion extends UpdateCompanion<ReaderSettingsData> {
+  final Value<String> id;
+  final Value<double> fontSize;
+  final Value<String> fontFamily;
+  final Value<double> lineHeight;
+  final Value<String> themeMode;
+  final Value<double> margin;
+  final Value<int> rowid;
+  const ReaderSettingsCompanion({
+    this.id = const Value.absent(),
+    this.fontSize = const Value.absent(),
+    this.fontFamily = const Value.absent(),
+    this.lineHeight = const Value.absent(),
+    this.themeMode = const Value.absent(),
+    this.margin = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReaderSettingsCompanion.insert({
+    required String id,
+    this.fontSize = const Value.absent(),
+    this.fontFamily = const Value.absent(),
+    this.lineHeight = const Value.absent(),
+    this.themeMode = const Value.absent(),
+    this.margin = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<ReaderSettingsData> custom({
+    Expression<String>? id,
+    Expression<double>? fontSize,
+    Expression<String>? fontFamily,
+    Expression<double>? lineHeight,
+    Expression<String>? themeMode,
+    Expression<double>? margin,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (fontSize != null) 'font_size': fontSize,
+      if (fontFamily != null) 'font_family': fontFamily,
+      if (lineHeight != null) 'line_height': lineHeight,
+      if (themeMode != null) 'theme_mode': themeMode,
+      if (margin != null) 'margin': margin,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReaderSettingsCompanion copyWith(
+      {Value<String>? id,
+      Value<double>? fontSize,
+      Value<String>? fontFamily,
+      Value<double>? lineHeight,
+      Value<String>? themeMode,
+      Value<double>? margin,
+      Value<int>? rowid}) {
+    return ReaderSettingsCompanion(
+      id: id ?? this.id,
+      fontSize: fontSize ?? this.fontSize,
+      fontFamily: fontFamily ?? this.fontFamily,
+      lineHeight: lineHeight ?? this.lineHeight,
+      themeMode: themeMode ?? this.themeMode,
+      margin: margin ?? this.margin,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (fontSize.present) {
+      map['font_size'] = Variable<double>(fontSize.value);
+    }
+    if (fontFamily.present) {
+      map['font_family'] = Variable<String>(fontFamily.value);
+    }
+    if (lineHeight.present) {
+      map['line_height'] = Variable<double>(lineHeight.value);
+    }
+    if (themeMode.present) {
+      map['theme_mode'] = Variable<String>(themeMode.value);
+    }
+    if (margin.present) {
+      map['margin'] = Variable<double>(margin.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReaderSettingsCompanion(')
+          ..write('id: $id, ')
+          ..write('fontSize: $fontSize, ')
+          ..write('fontFamily: $fontFamily, ')
+          ..write('lineHeight: $lineHeight, ')
+          ..write('themeMode: $themeMode, ')
+          ..write('margin: $margin, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SearchIndexTable extends SearchIndex
+    with TableInfo<$SearchIndexTable, SearchIndexData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SearchIndexTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
+  @override
+  late final GeneratedColumn<String> bookId = GeneratedColumn<String>(
+      'book_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES books (id)'));
+  static const VerificationMeta _chapterIndexMeta =
+      const VerificationMeta('chapterIndex');
+  @override
+  late final GeneratedColumn<int> chapterIndex = GeneratedColumn<int>(
+      'chapter_index', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _contentTextMeta =
+      const VerificationMeta('contentText');
+  @override
+  late final GeneratedColumn<String> contentText = GeneratedColumn<String>(
+      'content_text', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [id, bookId, chapterIndex, contentText];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'search_index';
+  @override
+  VerificationContext validateIntegrity(Insertable<SearchIndexData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('book_id')) {
+      context.handle(_bookIdMeta,
+          bookId.isAcceptableOrUnknown(data['book_id']!, _bookIdMeta));
+    } else if (isInserting) {
+      context.missing(_bookIdMeta);
+    }
+    if (data.containsKey('chapter_index')) {
+      context.handle(
+          _chapterIndexMeta,
+          chapterIndex.isAcceptableOrUnknown(
+              data['chapter_index']!, _chapterIndexMeta));
+    } else if (isInserting) {
+      context.missing(_chapterIndexMeta);
+    }
+    if (data.containsKey('content_text')) {
+      context.handle(
+          _contentTextMeta,
+          contentText.isAcceptableOrUnknown(
+              data['content_text']!, _contentTextMeta));
+    } else if (isInserting) {
+      context.missing(_contentTextMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SearchIndexData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SearchIndexData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      bookId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}book_id'])!,
+      chapterIndex: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}chapter_index'])!,
+      contentText: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content_text'])!,
+    );
+  }
+
+  @override
+  $SearchIndexTable createAlias(String alias) {
+    return $SearchIndexTable(attachedDatabase, alias);
+  }
+}
+
+class SearchIndexData extends DataClass implements Insertable<SearchIndexData> {
+  final int id;
+  final String bookId;
+  final int chapterIndex;
+  final String contentText;
+  const SearchIndexData(
+      {required this.id,
+      required this.bookId,
+      required this.chapterIndex,
+      required this.contentText});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['book_id'] = Variable<String>(bookId);
+    map['chapter_index'] = Variable<int>(chapterIndex);
+    map['content_text'] = Variable<String>(contentText);
+    return map;
+  }
+
+  SearchIndexCompanion toCompanion(bool nullToAbsent) {
+    return SearchIndexCompanion(
+      id: Value(id),
+      bookId: Value(bookId),
+      chapterIndex: Value(chapterIndex),
+      contentText: Value(contentText),
+    );
+  }
+
+  factory SearchIndexData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SearchIndexData(
+      id: serializer.fromJson<int>(json['id']),
+      bookId: serializer.fromJson<String>(json['bookId']),
+      chapterIndex: serializer.fromJson<int>(json['chapterIndex']),
+      contentText: serializer.fromJson<String>(json['contentText']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'bookId': serializer.toJson<String>(bookId),
+      'chapterIndex': serializer.toJson<int>(chapterIndex),
+      'contentText': serializer.toJson<String>(contentText),
+    };
+  }
+
+  SearchIndexData copyWith(
+          {int? id, String? bookId, int? chapterIndex, String? contentText}) =>
+      SearchIndexData(
+        id: id ?? this.id,
+        bookId: bookId ?? this.bookId,
+        chapterIndex: chapterIndex ?? this.chapterIndex,
+        contentText: contentText ?? this.contentText,
+      );
+  SearchIndexData copyWithCompanion(SearchIndexCompanion data) {
+    return SearchIndexData(
+      id: data.id.present ? data.id.value : this.id,
+      bookId: data.bookId.present ? data.bookId.value : this.bookId,
+      chapterIndex: data.chapterIndex.present
+          ? data.chapterIndex.value
+          : this.chapterIndex,
+      contentText:
+          data.contentText.present ? data.contentText.value : this.contentText,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SearchIndexData(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('chapterIndex: $chapterIndex, ')
+          ..write('contentText: $contentText')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, bookId, chapterIndex, contentText);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SearchIndexData &&
+          other.id == this.id &&
+          other.bookId == this.bookId &&
+          other.chapterIndex == this.chapterIndex &&
+          other.contentText == this.contentText);
+}
+
+class SearchIndexCompanion extends UpdateCompanion<SearchIndexData> {
+  final Value<int> id;
+  final Value<String> bookId;
+  final Value<int> chapterIndex;
+  final Value<String> contentText;
+  const SearchIndexCompanion({
+    this.id = const Value.absent(),
+    this.bookId = const Value.absent(),
+    this.chapterIndex = const Value.absent(),
+    this.contentText = const Value.absent(),
+  });
+  SearchIndexCompanion.insert({
+    this.id = const Value.absent(),
+    required String bookId,
+    required int chapterIndex,
+    required String contentText,
+  })  : bookId = Value(bookId),
+        chapterIndex = Value(chapterIndex),
+        contentText = Value(contentText);
+  static Insertable<SearchIndexData> custom({
+    Expression<int>? id,
+    Expression<String>? bookId,
+    Expression<int>? chapterIndex,
+    Expression<String>? contentText,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (bookId != null) 'book_id': bookId,
+      if (chapterIndex != null) 'chapter_index': chapterIndex,
+      if (contentText != null) 'content_text': contentText,
+    });
+  }
+
+  SearchIndexCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? bookId,
+      Value<int>? chapterIndex,
+      Value<String>? contentText}) {
+    return SearchIndexCompanion(
+      id: id ?? this.id,
+      bookId: bookId ?? this.bookId,
+      chapterIndex: chapterIndex ?? this.chapterIndex,
+      contentText: contentText ?? this.contentText,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (bookId.present) {
+      map['book_id'] = Variable<String>(bookId.value);
+    }
+    if (chapterIndex.present) {
+      map['chapter_index'] = Variable<int>(chapterIndex.value);
+    }
+    if (contentText.present) {
+      map['content_text'] = Variable<String>(contentText.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SearchIndexCompanion(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('chapterIndex: $chapterIndex, ')
+          ..write('contentText: $contentText')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1815,19 +2546,23 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $NotesTable notes = $NotesTable(this);
   late final $ReadingProgressesTable readingProgresses =
       $ReadingProgressesTable(this);
+  late final $ReaderSettingsTable readerSettings = $ReaderSettingsTable(this);
+  late final $SearchIndexTable searchIndex = $SearchIndexTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [books, bookmarks, notes, readingProgresses];
+      [books, bookmarks, notes, readingProgresses, readerSettings, searchIndex];
 }
 
 typedef $$BooksTableCreateCompanionBuilder = BooksCompanion Function({
   required String id,
   required String title,
+  Value<String?> author,
   required String filePath,
   required String fileType,
+  Value<int> fileSize,
   Value<String?> coverPath,
   Value<DateTime?> lastOpened,
   required DateTime addedAt,
@@ -1835,13 +2570,16 @@ typedef $$BooksTableCreateCompanionBuilder = BooksCompanion Function({
   Value<int> totalPages,
   Value<int> currentPage,
   Value<double> readingProgress,
+  Value<String?> fileHash,
   Value<int> rowid,
 });
 typedef $$BooksTableUpdateCompanionBuilder = BooksCompanion Function({
   Value<String> id,
   Value<String> title,
+  Value<String?> author,
   Value<String> filePath,
   Value<String> fileType,
+  Value<int> fileSize,
   Value<String?> coverPath,
   Value<DateTime?> lastOpened,
   Value<DateTime> addedAt,
@@ -1849,6 +2587,7 @@ typedef $$BooksTableUpdateCompanionBuilder = BooksCompanion Function({
   Value<int> totalPages,
   Value<int> currentPage,
   Value<double> readingProgress,
+  Value<String?> fileHash,
   Value<int> rowid,
 });
 
@@ -1901,6 +2640,20 @@ final class $$BooksTableReferences
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
+
+  static MultiTypedResultKey<$SearchIndexTable, List<SearchIndexData>>
+      _searchIndexRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+          db.searchIndex,
+          aliasName: $_aliasNameGenerator(db.books.id, db.searchIndex.bookId));
+
+  $$SearchIndexTableProcessedTableManager get searchIndexRefs {
+    final manager = $$SearchIndexTableTableManager($_db, $_db.searchIndex)
+        .filter((f) => f.bookId.id($_item.id));
+
+    final cache = $_typedResult.readTableOrNull(_searchIndexRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
@@ -1917,11 +2670,17 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
   ColumnFilters<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get author => $composableBuilder(
+      column: $table.author, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get filePath => $composableBuilder(
       column: $table.filePath, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get fileType => $composableBuilder(
       column: $table.fileType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get fileSize => $composableBuilder(
+      column: $table.fileSize, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get coverPath => $composableBuilder(
       column: $table.coverPath, builder: (column) => ColumnFilters(column));
@@ -1944,6 +2703,9 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
   ColumnFilters<double> get readingProgress => $composableBuilder(
       column: $table.readingProgress,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get fileHash => $composableBuilder(
+      column: $table.fileHash, builder: (column) => ColumnFilters(column));
 
   Expression<bool> bookmarksRefs(
       Expression<bool> Function($$BookmarksTableFilterComposer f) f) {
@@ -2007,6 +2769,27 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
             ));
     return f(composer);
   }
+
+  Expression<bool> searchIndexRefs(
+      Expression<bool> Function($$SearchIndexTableFilterComposer f) f) {
+    final $$SearchIndexTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.searchIndex,
+        getReferencedColumn: (t) => t.bookId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$SearchIndexTableFilterComposer(
+              $db: $db,
+              $table: $db.searchIndex,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$BooksTableOrderingComposer
@@ -2024,11 +2807,17 @@ class $$BooksTableOrderingComposer
   ColumnOrderings<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get author => $composableBuilder(
+      column: $table.author, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get filePath => $composableBuilder(
       column: $table.filePath, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get fileType => $composableBuilder(
       column: $table.fileType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get fileSize => $composableBuilder(
+      column: $table.fileSize, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get coverPath => $composableBuilder(
       column: $table.coverPath, builder: (column) => ColumnOrderings(column));
@@ -2051,6 +2840,9 @@ class $$BooksTableOrderingComposer
   ColumnOrderings<double> get readingProgress => $composableBuilder(
       column: $table.readingProgress,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get fileHash => $composableBuilder(
+      column: $table.fileHash, builder: (column) => ColumnOrderings(column));
 }
 
 class $$BooksTableAnnotationComposer
@@ -2068,11 +2860,17 @@ class $$BooksTableAnnotationComposer
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
 
+  GeneratedColumn<String> get author =>
+      $composableBuilder(column: $table.author, builder: (column) => column);
+
   GeneratedColumn<String> get filePath =>
       $composableBuilder(column: $table.filePath, builder: (column) => column);
 
   GeneratedColumn<String> get fileType =>
       $composableBuilder(column: $table.fileType, builder: (column) => column);
+
+  GeneratedColumn<int> get fileSize =>
+      $composableBuilder(column: $table.fileSize, builder: (column) => column);
 
   GeneratedColumn<String> get coverPath =>
       $composableBuilder(column: $table.coverPath, builder: (column) => column);
@@ -2094,6 +2892,9 @@ class $$BooksTableAnnotationComposer
 
   GeneratedColumn<double> get readingProgress => $composableBuilder(
       column: $table.readingProgress, builder: (column) => column);
+
+  GeneratedColumn<String> get fileHash =>
+      $composableBuilder(column: $table.fileHash, builder: (column) => column);
 
   Expression<T> bookmarksRefs<T extends Object>(
       Expression<T> Function($$BookmarksTableAnnotationComposer a) f) {
@@ -2158,6 +2959,27 @@ class $$BooksTableAnnotationComposer
                 ));
     return f(composer);
   }
+
+  Expression<T> searchIndexRefs<T extends Object>(
+      Expression<T> Function($$SearchIndexTableAnnotationComposer a) f) {
+    final $$SearchIndexTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.searchIndex,
+        getReferencedColumn: (t) => t.bookId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$SearchIndexTableAnnotationComposer(
+              $db: $db,
+              $table: $db.searchIndex,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$BooksTableTableManager extends RootTableManager<
@@ -2172,7 +2994,10 @@ class $$BooksTableTableManager extends RootTableManager<
     (BooksData, $$BooksTableReferences),
     BooksData,
     PrefetchHooks Function(
-        {bool bookmarksRefs, bool notesRefs, bool readingProgressesRefs})> {
+        {bool bookmarksRefs,
+        bool notesRefs,
+        bool readingProgressesRefs,
+        bool searchIndexRefs})> {
   $$BooksTableTableManager(_$AppDatabase db, $BooksTable table)
       : super(TableManagerState(
           db: db,
@@ -2186,8 +3011,10 @@ class $$BooksTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<String> title = const Value.absent(),
+            Value<String?> author = const Value.absent(),
             Value<String> filePath = const Value.absent(),
             Value<String> fileType = const Value.absent(),
+            Value<int> fileSize = const Value.absent(),
             Value<String?> coverPath = const Value.absent(),
             Value<DateTime?> lastOpened = const Value.absent(),
             Value<DateTime> addedAt = const Value.absent(),
@@ -2195,13 +3022,16 @@ class $$BooksTableTableManager extends RootTableManager<
             Value<int> totalPages = const Value.absent(),
             Value<int> currentPage = const Value.absent(),
             Value<double> readingProgress = const Value.absent(),
+            Value<String?> fileHash = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               BooksCompanion(
             id: id,
             title: title,
+            author: author,
             filePath: filePath,
             fileType: fileType,
+            fileSize: fileSize,
             coverPath: coverPath,
             lastOpened: lastOpened,
             addedAt: addedAt,
@@ -2209,13 +3039,16 @@ class $$BooksTableTableManager extends RootTableManager<
             totalPages: totalPages,
             currentPage: currentPage,
             readingProgress: readingProgress,
+            fileHash: fileHash,
             rowid: rowid,
           ),
           createCompanionCallback: ({
             required String id,
             required String title,
+            Value<String?> author = const Value.absent(),
             required String filePath,
             required String fileType,
+            Value<int> fileSize = const Value.absent(),
             Value<String?> coverPath = const Value.absent(),
             Value<DateTime?> lastOpened = const Value.absent(),
             required DateTime addedAt,
@@ -2223,13 +3056,16 @@ class $$BooksTableTableManager extends RootTableManager<
             Value<int> totalPages = const Value.absent(),
             Value<int> currentPage = const Value.absent(),
             Value<double> readingProgress = const Value.absent(),
+            Value<String?> fileHash = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               BooksCompanion.insert(
             id: id,
             title: title,
+            author: author,
             filePath: filePath,
             fileType: fileType,
+            fileSize: fileSize,
             coverPath: coverPath,
             lastOpened: lastOpened,
             addedAt: addedAt,
@@ -2237,6 +3073,7 @@ class $$BooksTableTableManager extends RootTableManager<
             totalPages: totalPages,
             currentPage: currentPage,
             readingProgress: readingProgress,
+            fileHash: fileHash,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -2246,13 +3083,15 @@ class $$BooksTableTableManager extends RootTableManager<
           prefetchHooksCallback: (
               {bookmarksRefs = false,
               notesRefs = false,
-              readingProgressesRefs = false}) {
+              readingProgressesRefs = false,
+              searchIndexRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
                 if (bookmarksRefs) db.bookmarks,
                 if (notesRefs) db.notes,
-                if (readingProgressesRefs) db.readingProgresses
+                if (readingProgressesRefs) db.readingProgresses,
+                if (searchIndexRefs) db.searchIndex
               ],
               addJoins: null,
               getPrefetchedDataCallback: (items) async {
@@ -2290,6 +3129,18 @@ class $$BooksTableTableManager extends RootTableManager<
                         referencedItemsForCurrentItem: (item,
                                 referencedItems) =>
                             referencedItems.where((e) => e.bookId == item.id),
+                        typedResults: items),
+                  if (searchIndexRefs)
+                    await $_getPrefetchedData(
+                        currentTable: table,
+                        referencedTable:
+                            $$BooksTableReferences._searchIndexRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$BooksTableReferences(db, table, p0)
+                                .searchIndexRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.bookId == item.id),
                         typedResults: items)
                 ];
               },
@@ -2310,7 +3161,10 @@ typedef $$BooksTableProcessedTableManager = ProcessedTableManager<
     (BooksData, $$BooksTableReferences),
     BooksData,
     PrefetchHooks Function(
-        {bool bookmarksRefs, bool notesRefs, bool readingProgressesRefs})>;
+        {bool bookmarksRefs,
+        bool notesRefs,
+        bool readingProgressesRefs,
+        bool searchIndexRefs})>;
 typedef $$BookmarksTableCreateCompanionBuilder = BookmarksCompanion Function({
   required String id,
   required String bookId,
@@ -3235,6 +4089,448 @@ typedef $$ReadingProgressesTableProcessedTableManager = ProcessedTableManager<
     (ReadingProgressesData, $$ReadingProgressesTableReferences),
     ReadingProgressesData,
     PrefetchHooks Function({bool bookId})>;
+typedef $$ReaderSettingsTableCreateCompanionBuilder = ReaderSettingsCompanion
+    Function({
+  required String id,
+  Value<double> fontSize,
+  Value<String> fontFamily,
+  Value<double> lineHeight,
+  Value<String> themeMode,
+  Value<double> margin,
+  Value<int> rowid,
+});
+typedef $$ReaderSettingsTableUpdateCompanionBuilder = ReaderSettingsCompanion
+    Function({
+  Value<String> id,
+  Value<double> fontSize,
+  Value<String> fontFamily,
+  Value<double> lineHeight,
+  Value<String> themeMode,
+  Value<double> margin,
+  Value<int> rowid,
+});
+
+class $$ReaderSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReaderSettingsTable> {
+  $$ReaderSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get fontSize => $composableBuilder(
+      column: $table.fontSize, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get fontFamily => $composableBuilder(
+      column: $table.fontFamily, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get lineHeight => $composableBuilder(
+      column: $table.lineHeight, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get themeMode => $composableBuilder(
+      column: $table.themeMode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get margin => $composableBuilder(
+      column: $table.margin, builder: (column) => ColumnFilters(column));
+}
+
+class $$ReaderSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReaderSettingsTable> {
+  $$ReaderSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get fontSize => $composableBuilder(
+      column: $table.fontSize, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get fontFamily => $composableBuilder(
+      column: $table.fontFamily, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get lineHeight => $composableBuilder(
+      column: $table.lineHeight, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get themeMode => $composableBuilder(
+      column: $table.themeMode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get margin => $composableBuilder(
+      column: $table.margin, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ReaderSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReaderSettingsTable> {
+  $$ReaderSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<double> get fontSize =>
+      $composableBuilder(column: $table.fontSize, builder: (column) => column);
+
+  GeneratedColumn<String> get fontFamily => $composableBuilder(
+      column: $table.fontFamily, builder: (column) => column);
+
+  GeneratedColumn<double> get lineHeight => $composableBuilder(
+      column: $table.lineHeight, builder: (column) => column);
+
+  GeneratedColumn<String> get themeMode =>
+      $composableBuilder(column: $table.themeMode, builder: (column) => column);
+
+  GeneratedColumn<double> get margin =>
+      $composableBuilder(column: $table.margin, builder: (column) => column);
+}
+
+class $$ReaderSettingsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ReaderSettingsTable,
+    ReaderSettingsData,
+    $$ReaderSettingsTableFilterComposer,
+    $$ReaderSettingsTableOrderingComposer,
+    $$ReaderSettingsTableAnnotationComposer,
+    $$ReaderSettingsTableCreateCompanionBuilder,
+    $$ReaderSettingsTableUpdateCompanionBuilder,
+    (
+      ReaderSettingsData,
+      BaseReferences<_$AppDatabase, $ReaderSettingsTable, ReaderSettingsData>
+    ),
+    ReaderSettingsData,
+    PrefetchHooks Function()> {
+  $$ReaderSettingsTableTableManager(
+      _$AppDatabase db, $ReaderSettingsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReaderSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReaderSettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReaderSettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<double> fontSize = const Value.absent(),
+            Value<String> fontFamily = const Value.absent(),
+            Value<double> lineHeight = const Value.absent(),
+            Value<String> themeMode = const Value.absent(),
+            Value<double> margin = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ReaderSettingsCompanion(
+            id: id,
+            fontSize: fontSize,
+            fontFamily: fontFamily,
+            lineHeight: lineHeight,
+            themeMode: themeMode,
+            margin: margin,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<double> fontSize = const Value.absent(),
+            Value<String> fontFamily = const Value.absent(),
+            Value<double> lineHeight = const Value.absent(),
+            Value<String> themeMode = const Value.absent(),
+            Value<double> margin = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ReaderSettingsCompanion.insert(
+            id: id,
+            fontSize: fontSize,
+            fontFamily: fontFamily,
+            lineHeight: lineHeight,
+            themeMode: themeMode,
+            margin: margin,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ReaderSettingsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ReaderSettingsTable,
+    ReaderSettingsData,
+    $$ReaderSettingsTableFilterComposer,
+    $$ReaderSettingsTableOrderingComposer,
+    $$ReaderSettingsTableAnnotationComposer,
+    $$ReaderSettingsTableCreateCompanionBuilder,
+    $$ReaderSettingsTableUpdateCompanionBuilder,
+    (
+      ReaderSettingsData,
+      BaseReferences<_$AppDatabase, $ReaderSettingsTable, ReaderSettingsData>
+    ),
+    ReaderSettingsData,
+    PrefetchHooks Function()>;
+typedef $$SearchIndexTableCreateCompanionBuilder = SearchIndexCompanion
+    Function({
+  Value<int> id,
+  required String bookId,
+  required int chapterIndex,
+  required String contentText,
+});
+typedef $$SearchIndexTableUpdateCompanionBuilder = SearchIndexCompanion
+    Function({
+  Value<int> id,
+  Value<String> bookId,
+  Value<int> chapterIndex,
+  Value<String> contentText,
+});
+
+final class $$SearchIndexTableReferences
+    extends BaseReferences<_$AppDatabase, $SearchIndexTable, SearchIndexData> {
+  $$SearchIndexTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $BooksTable _bookIdTable(_$AppDatabase db) => db.books
+      .createAlias($_aliasNameGenerator(db.searchIndex.bookId, db.books.id));
+
+  $$BooksTableProcessedTableManager? get bookId {
+    if ($_item.bookId == null) return null;
+    final manager = $$BooksTableTableManager($_db, $_db.books)
+        .filter((f) => f.id($_item.bookId!));
+    final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$SearchIndexTableFilterComposer
+    extends Composer<_$AppDatabase, $SearchIndexTable> {
+  $$SearchIndexTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get chapterIndex => $composableBuilder(
+      column: $table.chapterIndex, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get contentText => $composableBuilder(
+      column: $table.contentText, builder: (column) => ColumnFilters(column));
+
+  $$BooksTableFilterComposer get bookId {
+    final $$BooksTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.bookId,
+        referencedTable: $db.books,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BooksTableFilterComposer(
+              $db: $db,
+              $table: $db.books,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$SearchIndexTableOrderingComposer
+    extends Composer<_$AppDatabase, $SearchIndexTable> {
+  $$SearchIndexTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get chapterIndex => $composableBuilder(
+      column: $table.chapterIndex,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get contentText => $composableBuilder(
+      column: $table.contentText, builder: (column) => ColumnOrderings(column));
+
+  $$BooksTableOrderingComposer get bookId {
+    final $$BooksTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.bookId,
+        referencedTable: $db.books,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BooksTableOrderingComposer(
+              $db: $db,
+              $table: $db.books,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$SearchIndexTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SearchIndexTable> {
+  $$SearchIndexTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get chapterIndex => $composableBuilder(
+      column: $table.chapterIndex, builder: (column) => column);
+
+  GeneratedColumn<String> get contentText => $composableBuilder(
+      column: $table.contentText, builder: (column) => column);
+
+  $$BooksTableAnnotationComposer get bookId {
+    final $$BooksTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.bookId,
+        referencedTable: $db.books,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BooksTableAnnotationComposer(
+              $db: $db,
+              $table: $db.books,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$SearchIndexTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SearchIndexTable,
+    SearchIndexData,
+    $$SearchIndexTableFilterComposer,
+    $$SearchIndexTableOrderingComposer,
+    $$SearchIndexTableAnnotationComposer,
+    $$SearchIndexTableCreateCompanionBuilder,
+    $$SearchIndexTableUpdateCompanionBuilder,
+    (SearchIndexData, $$SearchIndexTableReferences),
+    SearchIndexData,
+    PrefetchHooks Function({bool bookId})> {
+  $$SearchIndexTableTableManager(_$AppDatabase db, $SearchIndexTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SearchIndexTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SearchIndexTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SearchIndexTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> bookId = const Value.absent(),
+            Value<int> chapterIndex = const Value.absent(),
+            Value<String> contentText = const Value.absent(),
+          }) =>
+              SearchIndexCompanion(
+            id: id,
+            bookId: bookId,
+            chapterIndex: chapterIndex,
+            contentText: contentText,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String bookId,
+            required int chapterIndex,
+            required String contentText,
+          }) =>
+              SearchIndexCompanion.insert(
+            id: id,
+            bookId: bookId,
+            chapterIndex: chapterIndex,
+            contentText: contentText,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$SearchIndexTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({bookId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (bookId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.bookId,
+                    referencedTable:
+                        $$SearchIndexTableReferences._bookIdTable(db),
+                    referencedColumn:
+                        $$SearchIndexTableReferences._bookIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$SearchIndexTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $SearchIndexTable,
+    SearchIndexData,
+    $$SearchIndexTableFilterComposer,
+    $$SearchIndexTableOrderingComposer,
+    $$SearchIndexTableAnnotationComposer,
+    $$SearchIndexTableCreateCompanionBuilder,
+    $$SearchIndexTableUpdateCompanionBuilder,
+    (SearchIndexData, $$SearchIndexTableReferences),
+    SearchIndexData,
+    PrefetchHooks Function({bool bookId})>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3247,4 +4543,8 @@ class $AppDatabaseManager {
       $$NotesTableTableManager(_db, _db.notes);
   $$ReadingProgressesTableTableManager get readingProgresses =>
       $$ReadingProgressesTableTableManager(_db, _db.readingProgresses);
+  $$ReaderSettingsTableTableManager get readerSettings =>
+      $$ReaderSettingsTableTableManager(_db, _db.readerSettings);
+  $$SearchIndexTableTableManager get searchIndex =>
+      $$SearchIndexTableTableManager(_db, _db.searchIndex);
 }

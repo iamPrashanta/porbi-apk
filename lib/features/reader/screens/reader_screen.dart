@@ -38,6 +38,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     Future.microtask(() {
       ref.read(readerProvider.notifier).loadBook(widget.bookId);
     });
+
+    _scrollController.addListener(() {
+      if (_scrollController.hasClients) {
+        ref.read(readerProvider.notifier).updateScrollPosition(_scrollController.offset);
+      }
+    });
   }
 
   @override
@@ -122,6 +128,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           ),
         ),
       );
+    }
+
+    // Try to restore scroll offset when jumping to a chapter that was previously saved
+    if (_scrollController.hasClients && state.scrollPosition > 0 && _scrollController.offset == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients && _scrollController.position.maxScrollExtent >= state.scrollPosition) {
+          _scrollController.jumpTo(state.scrollPosition);
+        }
+      });
     }
 
     return Scaffold(

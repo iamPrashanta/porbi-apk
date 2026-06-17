@@ -4,11 +4,26 @@ import 'package:porbi/core/router/app_router.dart';
 import 'package:porbi/core/theme/app_theme.dart';
 import 'package:porbi/providers/settings_provider.dart';
 
-class PorbiApp extends ConsumerWidget {
+import 'package:porbi/core/services/intent_service.dart';
+
+class PorbiApp extends ConsumerStatefulWidget {
   const PorbiApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PorbiApp> createState() => _PorbiAppState();
+}
+
+class _PorbiAppState extends ConsumerState<PorbiApp> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(intentServiceProvider).init();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(

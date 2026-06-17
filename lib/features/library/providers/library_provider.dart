@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:porbi/core/services/file_service.dart';
 import 'package:porbi/core/storage/database.dart';
 import 'package:porbi/models/book.dart';
 import 'package:porbi/providers/database_provider.dart';
+import 'package:porbi/features/reader/services/epub_parser.dart';
 
 final fileServiceProvider = Provider<FileService>((ref) => FileService());
 
@@ -72,14 +75,60 @@ class LibraryNotifier extends StateNotifier<AsyncValue<void>> {
         return null;
       }
 
-      final book = await _fileService.importFile(file);
-      await _db.insertBook(book);
-      state = const AsyncData(null);
-      return book;
+      return await _processAndInsertFile(file);
     } catch (e, st) {
       state = AsyncError(e, st);
       return null;
     }
+  }
+
+  Future<Book?> importFromUri(String uri) async {
+    state = const AsyncLoading();
+    try {
+      final file = await _fileService.importFromUri(uri);
+      if (file == null) {
+        state = const AsyncData(null);
+        return null;
+      }
+      return await _processAndInsertFile(file);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return null;
+    }
+  }
+
+  Future<Book> _processAndInsertFile(File sourceFile) async {
+    // 1. Hash the file for deduplication
+    final hash = await _fileService.hashFile(sourceFile);
+    
+    // 2. Check if DB already has it
+    final existingBook = await _db.getBookByHash(hash);
+    if (existingBook != null) {
+      state = const AsyncData(null);
+      return existingBook;
+    }
+
+    // 3. Otherwise import and insert
+    var book = await _fileService.importFile(sourceFile);
+    
+    // 4. Extract metadata if EPUB
+    if (book.fileType == FileType.epub) {
+      try {
+        final parser = EpubParser();
+        await parser.parse(book.filePath);
+        book = book.copyWith(
+          title: parser.metadata['title'] ?? book.title,
+          author: parser.metadata['author'],
+          coverPath: parser.coverPath,
+        );
+      } catch (e) {
+        // Fallback to basic book if parsing fails
+      }
+    }
+    
+    await _db.insertBook(book);
+    state = const AsyncData(null);
+    return book;
   }
 
   Future<void> addBook(Book book) async {

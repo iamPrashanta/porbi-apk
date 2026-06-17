@@ -77,9 +77,9 @@ class ReaderNotifier extends StateNotifier<ReaderState> {
         return;
       }
 
-      // Load reading progress
       final progress = await _db.getProgressForBook(bookId);
       final savedChapterIndex = progress?.chapterIndex ?? 0;
+      final savedScrollOffset = progress?.scrollOffset ?? 0;
 
       // Parse based on file type
       List<Chapter> chapters;
@@ -91,7 +91,7 @@ class ReaderNotifier extends StateNotifier<ReaderState> {
           await _db.updateBook(updated);
         }
       } else if (book.fileType == FileType.txt) {
-        final parser = TxtParser(_fileService);
+        final parser = TxtParser();
         chapters = await parser.parse(book.filePath);
       } else if (book.fileType == FileType.markdown) {
         final parser = MarkdownParser(_fileService);
@@ -114,6 +114,7 @@ class ReaderNotifier extends StateNotifier<ReaderState> {
         book: updatedBook,
         chapters: chapters,
         currentChapterIndex: savedChapterIndex.clamp(0, chapters.length - 1),
+        scrollPosition: savedScrollOffset.toDouble(),
         isLoading: false,
       );
     } catch (e) {
@@ -172,6 +173,7 @@ class ReaderNotifier extends StateNotifier<ReaderState> {
         percentage: Value(percentage),
         lastRead: Value(DateTime.now()),
         chapterIndex: Value(currentState.currentChapterIndex),
+        scrollOffset: Value(currentState.scrollPosition.toInt()),
       ),
     );
 

@@ -44,9 +44,12 @@ extension FileTypeExtension on FileType {
 class Book {
   final String id;
   final String title;
+  final String? author;
   final String filePath;
   final FileType fileType;
+  final int fileSize;
   final String? coverPath;
+  final String? fileHash;
   final DateTime? lastOpened;
   final DateTime addedAt;
   final bool isFavorite;
@@ -57,9 +60,12 @@ class Book {
   const Book({
     required this.id,
     required this.title,
+    this.author,
     required this.filePath,
     required this.fileType,
+    this.fileSize = 0,
     this.coverPath,
+    this.fileHash,
     this.lastOpened,
     required this.addedAt,
     this.isFavorite = false,
@@ -71,9 +77,12 @@ class Book {
   Book copyWith({
     String? id,
     String? title,
+    String? author,
     String? filePath,
     FileType? fileType,
+    int? fileSize,
     String? coverPath,
+    String? fileHash,
     DateTime? lastOpened,
     DateTime? addedAt,
     bool? isFavorite,
@@ -84,9 +93,12 @@ class Book {
     return Book(
       id: id ?? this.id,
       title: title ?? this.title,
+      author: author ?? this.author,
       filePath: filePath ?? this.filePath,
       fileType: fileType ?? this.fileType,
+      fileSize: fileSize ?? this.fileSize,
       coverPath: coverPath ?? this.coverPath,
+      fileHash: fileHash ?? this.fileHash,
       lastOpened: lastOpened ?? this.lastOpened,
       addedAt: addedAt ?? this.addedAt,
       isFavorite: isFavorite ?? this.isFavorite,

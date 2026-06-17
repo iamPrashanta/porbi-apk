@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:porbi/core/constants/supported_formats.dart';
 import 'package:porbi/models/book.dart' as models;
+import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
 
 class FileService {
@@ -21,6 +22,12 @@ class FileService {
       return File(result.files.single.path!);
     }
     return null;
+  }
+
+  /// Hash a file using SHA256.
+  Future<String> hashFile(File file) async {
+    final digest = await sha256.bind(file.openRead()).first;
+    return digest.toString();
   }
 
   /// Import a file into the app's documents directory.
@@ -41,6 +48,13 @@ class FileService {
     final id = _uuid.v4();
     final fileName = '${id}_${p.basename(sourceFile.path)}';
     final destPath = p.join(booksDir.path, fileName);
+
+    // Calculate SHA256 Hash via Stream
+    final digest = await sha256.bind(sourceFile.openRead()).first;
+    final fileHash = digest.toString();
+    
+    final fileSize = await sourceFile.length();
+    
     final destFile = await sourceFile.copy(destPath);
 
     final title = _extractTitle(sourceFile.path);
@@ -50,6 +64,8 @@ class FileService {
       title: title,
       filePath: destFile.path,
       fileType: fileType,
+      fileSize: fileSize,
+      fileHash: fileHash,
       addedAt: DateTime.now(),
     );
   }

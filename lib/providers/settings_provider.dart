@@ -1,9 +1,10 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:porbi/models/reader_settings.dart';
+import 'package:porbi/core/storage/database.dart';
+import 'package:porbi/models/reader_settings.dart' as models;
+import 'package:porbi/providers/database_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drift/drift.dart' as drift;
 
 // ─── Theme Mode Provider ────────────────────────────────────
 
@@ -56,32 +57,47 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 // ─── Reader Settings Provider ───────────────────────────────
 
 final readerSettingsProvider =
-    StateNotifierProvider<ReaderSettingsNotifier, ReaderSettings>((ref) {
-      return ReaderSettingsNotifier();
+    StateNotifierProvider<ReaderSettingsNotifier, models.ReaderSettings>((ref) {
+      final db = ref.watch(databaseProvider);
+      return ReaderSettingsNotifier(db);
     });
 
-class ReaderSettingsNotifier extends StateNotifier<ReaderSettings> {
-  ReaderSettingsNotifier() : super(const ReaderSettings()) {
+class ReaderSettingsNotifier extends StateNotifier<models.ReaderSettings> {
+  final AppDatabase _db;
+  static const _settingsId = 'default_settings';
+
+  ReaderSettingsNotifier(this._db) : super(const models.ReaderSettings()) {
     _load();
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString('readerSettings');
-    if (json != null) {
-      try {
-        state = ReaderSettings.fromJson(
-          jsonDecode(json) as Map<String, dynamic>,
+    try {
+      final row = await (_db.select(_db.readerSettings)..where((s) => s.id.equals(_settingsId))).getSingleOrNull();
+      if (row != null) {
+        state = state.copyWith(
+          fontSize: row.fontSize,
+          fontFamily: row.fontFamily,
+          lineHeight: row.lineHeight,
+          horizontalMargin: row.margin,
+          verticalMargin: row.margin,
         );
-      } catch (_) {
-        // Use defaults if corrupted
       }
+    } catch (_) {
+      // Use defaults if error
     }
   }
 
   Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('readerSettings', jsonEncode(state.toJson()));
+    await _db.into(_db.readerSettings).insertOnConflictUpdate(
+      ReaderSettingsCompanion.insert(
+        id: _settingsId,
+        fontSize: drift.Value(state.fontSize),
+        fontFamily: drift.Value(state.fontFamily),
+        lineHeight: drift.Value(state.lineHeight),
+        themeMode: drift.Value(state.readerTheme.name),
+        margin: drift.Value(state.horizontalMargin),
+      ),
+    );
   }
 
   void updateFontSize(double size) {
@@ -109,7 +125,7 @@ class ReaderSettingsNotifier extends StateNotifier<ReaderSettings> {
     _save();
   }
 
-  void updateReaderTheme(ReaderThemeMode theme) {
+  void updateReaderTheme(models.ReaderThemeMode theme) {
     state = state.copyWith(readerTheme: theme);
     _save();
   }
@@ -120,7 +136,7 @@ class ReaderSettingsNotifier extends StateNotifier<ReaderSettings> {
   }
 
   void reset() {
-    state = const ReaderSettings();
+    state = const models.ReaderSettings();
     _save();
   }
 }

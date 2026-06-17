@@ -529,11 +529,6 @@ flutter test
 flutter build apk --release
 ```
 
-Requirements:
-
-* Zero analyzer issues
-* All tests passing
-* Successful release build
 
 ---
 

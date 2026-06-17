@@ -14,8 +14,10 @@ part 'database.g.dart';
 class Books extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
+  TextColumn get author => text().nullable()();
   TextColumn get filePath => text()();
   TextColumn get fileType => text()();
+  IntColumn get fileSize => integer().withDefault(const Constant(0))();
   TextColumn get coverPath => text().nullable()();
   DateTimeColumn get lastOpened => dateTime().nullable()();
   DateTimeColumn get addedAt => dateTime()();
@@ -23,6 +25,7 @@ class Books extends Table {
   IntColumn get totalPages => integer().withDefault(const Constant(0))();
   IntColumn get currentPage => integer().withDefault(const Constant(0))();
   RealColumn get readingProgress => real().withDefault(const Constant(0.0))();
+  TextColumn get fileHash => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -71,16 +74,55 @@ class ReadingProgresses extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+// ─── Reader Settings & Search ───────────────────────────────
+
+@DataClassName('ReaderSettingsData')
+class ReaderSettings extends Table {
+  TextColumn get id => text()();
+  RealColumn get fontSize => real().withDefault(const Constant(16.0))();
+  TextColumn get fontFamily => text().withDefault(const Constant('System'))();
+  RealColumn get lineHeight => real().withDefault(const Constant(1.5))();
+  TextColumn get themeMode => text().withDefault(const Constant('light'))();
+  RealColumn get margin => real().withDefault(const Constant(16.0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('SearchIndexData')
+class SearchIndex extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get bookId => text().references(Books, #id)();
+  IntColumn get chapterIndex => integer()();
+  TextColumn get contentText => text()();
+}
+
 // ─── Database ───────────────────────────────────────────────
 
-@DriftDatabase(tables: [Books, Bookmarks, Notes, ReadingProgresses])
+@DriftDatabase(tables: [Books, Bookmarks, Notes, ReadingProgresses, ReaderSettings, SearchIndex])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (Migrator m) async {
+          await m.createAll();
+        },
+        onUpgrade: (Migrator m, int from, int to) async {
+          if (from < 2) {
+            await m.addColumn(books, books.fileHash);
+            await m.addColumn(books, books.author);
+            await m.addColumn(books, books.fileSize);
+            await m.createTable(readerSettings);
+            await m.createTable(searchIndex);
+          }
+        },
+      );
 
   // ─── Book Operations ──────────────────────────────────────
 
@@ -93,6 +135,13 @@ class AppDatabase extends _$AppDatabase {
     final row = await (select(
       books,
     )..where((b) => b.id.equals(id))).getSingleOrNull();
+    return row != null ? _bookFromRow(row) : null;
+  }
+
+  Future<Book?> getBookByHash(String hash) async {
+    final row = await (select(
+      books,
+    )..where((b) => b.fileHash.equals(hash))).getSingleOrNull();
     return row != null ? _bookFromRow(row) : null;
   }
 
@@ -226,6 +275,8 @@ class AppDatabase extends _$AppDatabase {
     final allBookmarks = await select(bookmarks).get();
     final allNotes = await select(notes).get();
     final allProgress = await select(readingProgresses).get();
+    final allSettings = await select(readerSettings).get();
+    final allSearchIndex = await select(searchIndex).get();
 
     return {
       'version': 1,
@@ -235,8 +286,10 @@ class AppDatabase extends _$AppDatabase {
             (b) => {
               'id': b.id,
               'title': b.title,
+              'author': b.author,
               'filePath': b.filePath,
               'fileType': b.fileType,
+              'fileSize': b.fileSize,
               'coverPath': b.coverPath,
               'lastOpened': b.lastOpened?.toIso8601String(),
               'addedAt': b.addedAt.toIso8601String(),
@@ -244,6 +297,7 @@ class AppDatabase extends _$AppDatabase {
               'totalPages': b.totalPages,
               'currentPage': b.currentPage,
               'readingProgress': b.readingProgress,
+              'fileHash': b.fileHash,
             },
           )
           .toList(),
@@ -287,12 +341,35 @@ class AppDatabase extends _$AppDatabase {
             },
           )
           .toList(),
+      'readerSettings': allSettings
+          .map(
+            (s) => {
+              'id': s.id,
+              'fontSize': s.fontSize,
+              'fontFamily': s.fontFamily,
+              'lineHeight': s.lineHeight,
+              'themeMode': s.themeMode,
+              'margin': s.margin,
+            },
+          )
+          .toList(),
+      'searchIndex': allSearchIndex
+          .map(
+            (s) => {
+              'bookId': s.bookId,
+              'chapterIndex': s.chapterIndex,
+              'contentText': s.contentText,
+            },
+          )
+          .toList(),
     };
   }
 
   Future<void> importAll(Map<String, dynamic> data) async {
     await transaction(() async {
       // Clear existing data
+      await delete(searchIndex).go();
+      await delete(readerSettings).go();
       await delete(readingProgresses).go();
       await delete(notes).go();
       await delete(bookmarks).go();
@@ -305,8 +382,10 @@ class AppDatabase extends _$AppDatabase {
           BooksCompanion.insert(
             id: b['id'] as String,
             title: b['title'] as String,
+            author: Value(b['author'] as String?),
             filePath: b['filePath'] as String,
             fileType: b['fileType'] as String,
+            fileSize: Value(b['fileSize'] as int? ?? 0),
             coverPath: Value(b['coverPath'] as String?),
             lastOpened: Value(
               b['lastOpened'] != null
@@ -317,9 +396,8 @@ class AppDatabase extends _$AppDatabase {
             isFavorite: Value(b['isFavorite'] as bool? ?? false),
             totalPages: Value(b['totalPages'] as int? ?? 0),
             currentPage: Value(b['currentPage'] as int? ?? 0),
-            readingProgress: Value(
-              (b['readingProgress'] as num?)?.toDouble() ?? 0.0,
-            ),
+            readingProgress: Value((b['readingProgress'] as num?)?.toDouble() ?? 0.0),
+            fileHash: Value(b['fileHash'] as String?),
           ),
         );
       }
@@ -373,6 +451,33 @@ class AppDatabase extends _$AppDatabase {
             lastRead: DateTime.parse(r['lastRead'] as String),
             chapterIndex: Value(r['chapterIndex'] as int? ?? 0),
             scrollOffset: Value(r['scrollOffset'] as int?),
+          ),
+        );
+      }
+
+      // Import settings
+      final settingsList = data['readerSettings'] as List? ?? [];
+      for (final s in settingsList) {
+        await into(readerSettings).insert(
+          ReaderSettingsCompanion.insert(
+            id: s['id'] as String,
+            fontSize: Value((s['fontSize'] as num?)?.toDouble() ?? 16.0),
+            fontFamily: Value(s['fontFamily'] as String? ?? 'System'),
+            lineHeight: Value((s['lineHeight'] as num?)?.toDouble() ?? 1.5),
+            themeMode: Value(s['themeMode'] as String? ?? 'light'),
+            margin: Value((s['margin'] as num?)?.toDouble() ?? 16.0),
+          ),
+        );
+      }
+
+      // Import search index
+      final searchList = data['searchIndex'] as List? ?? [];
+      for (final s in searchList) {
+        await into(searchIndex).insert(
+          SearchIndexCompanion.insert(
+            bookId: s['bookId'] as String,
+            chapterIndex: s['chapterIndex'] as int,
+            contentText: s['contentText'] as String,
           ),
         );
       }
