@@ -248,14 +248,6 @@ class _FolderExplorerViewState extends ConsumerState<FolderExplorerView> {
                 onTap: () async {
                   Navigator.pop(ctx);
 
-                  // Show loader
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => const Center(child: CircularProgressIndicator()),
-                  );
-
-                  bool loaderPopped = false;
                   try {
                     final fileService = ref.read(fileServiceProvider);
                     final tempFile = await fileService.importFromUri(fileUri);
@@ -264,9 +256,6 @@ class _FolderExplorerViewState extends ConsumerState<FolderExplorerView> {
                     debugPrint('SAF URI: $fileUri');
                     debugPrint('BOOK ID: $bookId');
                     debugPrint('CACHE PATH: ${tempFile?.path}');
-                    
-                    Navigator.pop(context); // Dismiss loader
-                    loaderPopped = true;
 
                     if (tempFile != null) {
                       context.push(
@@ -275,11 +264,9 @@ class _FolderExplorerViewState extends ConsumerState<FolderExplorerView> {
                     } else {
                       throw Exception('Failed to copy file content');
                     }
-                  } catch (e) {
+                  } catch (e, st) {
+                    debugPrint('Error opening file: $e\n$st');
                     if (mounted) {
-                      if (!loaderPopped) {
-                        Navigator.pop(context); // Dismiss loader
-                      }
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Failed to open file: $e')),
                       );
